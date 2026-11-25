@@ -1,49 +1,54 @@
-# Sprout Siege
+# Pip's Expectations
 
-A voxel survivors-style action game that runs in the browser. You defend a floating island from the Gloom, a wave of cute purple blobs. Every enemy you pop plants a flower, and the grey island slowly blooms back to color as you fight.
+A voxel adventure in five chapters, adapted from Charles Dickens's *Great Expectations* (1861, public domain). The story starts on Christmas Eve, 1812, on the Kent marshes. You play young Pip as the Miasma, the "bad air" that people of the time blamed for disease, rolls in off the river. Every blob of Miasma you scatter plants a posy, and the grey world turns back to colour. A toy-theatre sheet of the 1810s was sold "a penny plain, twopence coloured", and the game works the same way: the island starts plain and you colour it in.
 
-## Why this design
+The folder is still named `sprout-siege` because the game grew out of that earlier prototype.
 
-The concept follows what was breaking out in 2025–2026:
+## The themes, and where each one lives
 
-| Signal | What it showed | How Sprout Siege uses it |
-| --- | --- | --- |
-| **Megabonk** (solo dev, 1M copies in 2 weeks) | Low-poly 3D survivors-like with chunky characters, auto-attacks and screen-filling builds is very watchable and easy to pick up | Survivors-like core loop: move, weapons fire on their own, pick 1 of 3 upgrades per level |
-| **"Friendslop" hits** (PEAK, R.E.P.O., Schedule I) | Players accept, even prefer, simple stylized graphics when readability, physics and juice are strong | Blocky voxel art with baked lighting, bold silhouettes, hit-flash, knockback, screen shake and damage numbers |
-| **Tiny Glade** and the cozy diorama trend | Small, handcrafted-looking worlds you watch change are deeply shareable | The whole arena is one floating voxel diorama that visibly transforms from grey to full bloom |
-| **Grow a Garden / Steal a Brainrot** (20M+ concurrent players on Roblox) | Dead-simple loops with visible progress and collectible goals pull in kids and adults alike | Bloom % goal with milestone chests, acorns that carry over between runs, unlockable heroes |
-| **Minecraft-style voxels** | Instantly familiar to every age group | Face-culled voxel island with ambient occlusion and grass-side strips, in a different genre |
+| Theme | How it shows up |
+| --- | --- |
+| **Early 1800s** | Chapters dated 1812–1829 (epilogue 1840). The world includes gas lamps (new in London then), prison hulks, a blacksmith's forge, a stagecoach-era inn, and Dr Jenner's vaccine at the apothecary. |
+| **Story from old English novels** | The chapters follow *Great Expectations*: the convict in the churchyard, Miss Havisham's stopped clocks, the anonymous fortune, escaping down the Thames, Pip's fever. Each chapter opens with a real quote from the novel. |
+| **Nostalgia** | Satis House, where every clock stopped at twenty to nine, is nostalgia itself. Blocky voxel art, a pocket-watch charm, keepsakes to collect, a book-page UI, and an optional black-and-white "penny plain" print mode. |
+| **Adventure** | Five chapters, each with its own objective: gather wittles for the convict, wind the stopped clocks, clear the London fog, escort Provis to the river stairs, ride out the fever. Then a boss for each. |
+| **Life and health** | A health bar and healing items. In the last chapter a fever drains Pip's health unless he stays close to Joe. |
+| **Life expectancy** | Pip starts at an expected 50 years, roughly what an English boy who had survived to 7 could hope for in 1812. His health at the end of each chapter, being knocked down, story choices and remedies all change it. The epilogue carves the final age on his tombstone and compares it with 1805 and today. |
+| **Chances** | Each chapter gives 3 chances (lives); being knocked down costs 2 years of life expectancy. Games of chance include Hazard dice at the Blue Boar inn (odds shown), a lawsuit gamble, and a quack elixir with even odds. |
+| **Reward** | Shillings, strongboxes, a keepsake hidden in each chapter, companions who join as the story goes on, and a fortune in Chapter III that is bigger if you were kind to the convict in Chapter I. |
+| **Cheat codes** | Seven secret words. Type them on the title screen or enter them in Settings. Riddles in Settings hint at each one. |
 
 ## How to play
 
 - **Move:** WASD, arrow keys, a gamepad stick, or drag anywhere on a touch screen
-- **Dash:** Space or Shift (or the DASH button on phones). Dashing makes you briefly untouchable
-- **Attack:** automatic
-- **Level up:** pick 1 of 3 cards (keys 1–3, R to reroll)
-- **Goal:** survive 7 minutes, beat King Gloop at 3:00 and the Gloom Golem at 7:00, and bloom as much of the island as you can
+- **Dash:** Space or Shift (or the DASH button on phones)
+- **Attack:** automatic. Pick 1 of 3 upgrade cards each level (keys 1–3, R to reroll)
+- **Story:** Title → Begin the tale → read a chapter → choose a companion → play. Each chapter ends with a choice and a page of Pip's ledger.
+- **Free play:** *The Long Night* is the original 7-minute survival mode, with two bosses.
 
-## What's inside
+## Secret codes (spoilers)
 
-- 4 heroes (Pip, Moss, Brick, Clove), each with a starting weapon and stat profile
-- 7 weapons with 5 levels each: Leaf Orbit, Spark Bolt, Stomp Quake, Boomer Carrot, Bee Swarm, Firefly Zap, Acorn Meteor
-- 9 passive charms
-- 5 enemy types plus elites, 2 bosses, timed swarm events
-- A day-to-night sky over the run, and a sunrise when you win
-- The island bloom system: kills plant flowers, 3 flowers color a 4×4 patch, every 20% drops a chest
-- The Treehouse: permanent upgrades bought with acorns
-- 3 difficulties (Cozy, Normal, Spicy), settings for music, sound, screen shake and damage numbers
-- All sound and music synthesized live with WebAudio, so there are no asset files
+| Code | Effect |
+| --- | --- |
+| `MAGWITCH` | Nothing can hurt you (toggle) |
+| `SATISHOUSE` | Every foe moves at half speed (toggle) |
+| `WHATLARKS` | Every companion unlocked |
+| `JAGGERS` | Every chapter open (chapters played ahead count as practice) |
+| `GREATEXPECTATIONS` | 500 shillings, once |
+| `PUMBLECHOOK` | Big heads (toggle) |
+| `PENNYPLAIN` | Black-and-white engraving look (toggle) |
 
 ## Tech
 
-Plain ES modules plus Three.js r160 from jsDelivr. No build step.
+Plain ES modules plus Three.js r160 from jsDelivr. No build step, and no image or audio files: all art is voxel geometry and all sound is synthesized with WebAudio.
 
 ```
-index.html      page, HUD, menus and styles
-src/game.js     game loop, combat, AI, bloom system, UI
-src/voxel.js    voxel model builder, island mesher with ambient occlusion, all models
+index.html      page, HUD, story screens and styles
+src/game.js     game loop, combat, objectives, NPCs, life ledger, screens, codes
+src/story.js    chapters, choices, remedies, keepsakes, codes, epilogue
+src/voxel.js    voxel model builder, island mesher, characters and set pieces
 src/audio.js    synthesized sound effects and adaptive music
-src/data.js     heroes, weapons, enemies, shop, pixel-art icons
+src/data.js     companions, weapons, charms, enemies, bosses, shop, pixel icons
 ```
 
 To run it locally, serve the folder with any static server (ES modules don't load from `file://`):
@@ -52,4 +57,4 @@ To run it locally, serve the folder with any static server (ES modules don't loa
 npx serve .
 ```
 
-Progress (acorns, upgrades, unlocks, records) is saved in the browser's local storage.
+Progress (shillings, upgrades, the current tale, keepsakes and codes) is saved in the browser's local storage.
