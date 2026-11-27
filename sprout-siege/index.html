@@ -1,709 +1,560 @@
-<title>Pip's Expectations</title>
+<title>Spark of Being</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Abril+Fatface&family=IM+Fell+English:ital@0;1&family=IM+Fell+English+SC&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;0,700;1,500&family=Cormorant+SC:wght@500;600;700&family=EB+Garamond:ital,wght@0,400;0,500;1,400&display=swap">
 <style>
-  /* Layout: a living toy-theatre island fills the frame; story pages are printed on rag paper and pinned to the safe edges. */
+  /* Layout: the 3D scene fills the frame; dark, thin-ruled panels sit on scrims at the safe edges. */
   :root {
-    --ink: #1d1a16;
-    --ink-soft: rgba(29, 26, 22, 0.76);
-    --ink-faint: rgba(29, 26, 22, 0.18);
-    --paper: #ecdfc0;
-    --paper-2: #e0cfa8;
-    --paper-edge: #b89f74;
-    --cream: #f3ead2;
-    --muted: #5e5140;
-    --wax: #9e2a2b;
-    --wax-deep: #6f1c1d;
-    --prussian: #1f3a5f;
-    --verdigris: #3f7f6b;
-    --gilt: #c9a227;
-    --gilt-hi: #ead07a;
-    --font-display: 'Abril Fatface', 'Bodoni 72', Didot, 'Playfair Display', Georgia, serif;
-    --font-body: 'IM Fell English', 'Iowan Old Style', 'Palatino Linotype', Georgia, serif;
-    --font-caps: 'IM Fell English SC', 'IM Fell English', Georgia, serif;
+    --void: #0a0809;
+    --panel: rgba(14, 10, 10, 0.9);
+    --panel-2: rgba(28, 20, 20, 0.92);
+    --line: rgba(236, 227, 208, 0.16);
+    --line-hi: rgba(236, 227, 208, 0.38);
+    --bone: #ece3d0;
+    --ash: #a89f90;
+    --blood: #a3202a;
+    --blood-hi: #d0303a;
+    --brass: #c9a24a;
+    --galv: #7cf0ff;
+    --paper: #e6dcc4;
+    --ink: #1c1512;
+    --font-display: 'Cormorant Garamond', 'Iowan Old Style', Georgia, serif;
+    --font-caps: 'Cormorant SC', 'Cormorant Garamond', Georgia, serif;
+    --font-body: 'EB Garamond', 'Iowan Old Style', Georgia, serif;
     --safe-t: env(safe-area-inset-top, 0px);
     --safe-r: env(safe-area-inset-right, 0px);
     --safe-b: env(safe-area-inset-bottom, 0px);
     --safe-l: env(safe-area-inset-left, 0px);
     color-scheme: dark;
   }
-  html { height: 100%; box-sizing: border-box; background: var(--ink); }
+  html { height: 100%; box-sizing: border-box; background: var(--void); }
   *, *::before, *::after { box-sizing: inherit; }
-  body { height: 100%; margin: 0; overflow: hidden; background: var(--ink); color: var(--cream); font-family: var(--font-body); font-size: 16px; }
+  body { height: 100%; margin: 0; overflow: hidden; background: var(--void); color: var(--bone); font-family: var(--font-body); font-size: 17px; }
   #app { position: relative; width: 100%; height: 100%; overflow: hidden; touch-action: none; -webkit-user-select: none; user-select: none; -webkit-tap-highlight-color: transparent; }
+  #app.playing, #app.playing canvas { cursor: none; }
   #app canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
-  #app.plain #scene { filter: grayscale(1) sepia(0.22) contrast(1.15); }
+  #app.plain #scene { filter: grayscale(1) contrast(1.2); }
   #overlay { pointer-events: none; }
-  .px { image-rendering: pixelated; image-rendering: crisp-edges; width: 20px; height: 20px; display: inline-block; vertical-align: middle; }
   button, input { font: inherit; color: inherit; }
   p { margin: 0; }
+  .ico { width: 1.1em; height: 1.1em; vertical-align: -0.18em; flex: none; }
+  .grain { position: absolute; inset: -50%; pointer-events: none; z-index: 30; opacity: 0.07; mix-blend-mode: overlay;
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/></filter><rect width='160' height='160' filter='url(%23n)'/></svg>");
+    animation: grain 0.6s steps(4) infinite; }
+  @keyframes grain { 0% { transform: translate(0, 0); } 25% { transform: translate(-3%, 2%); } 50% { transform: translate(2%, -3%); } 75% { transform: translate(-2%, -1%); } 100% { transform: translate(0, 0); } }
+  #vignette { position: absolute; inset: 0; pointer-events: none; z-index: 5; opacity: 0; background: radial-gradient(ellipse at center, transparent 50%, rgba(140, 0, 0, 0.6) 100%); }
+  .shade { position: absolute; inset: 0; pointer-events: none; z-index: 4; background: radial-gradient(ellipse at 50% 45%, transparent 55%, rgba(0, 0, 0, 0.55) 100%); }
+  #flash { position: absolute; inset: 0; pointer-events: none; z-index: 6; opacity: 0; }
+  #flash.go { animation: flash 0.45s ease-out; }
+  @keyframes flash { from { opacity: 1; } to { opacity: 0; } }
+  #lightning { position: absolute; inset: 0; pointer-events: none; z-index: 6; opacity: 0; background: #dfe8ff; }
+  #fade { position: absolute; inset: 0; pointer-events: none; z-index: 25; background: #000; opacity: 0; }
 
-  /* ---------- printed paper ---------- */
-  .paper {
-    color: var(--ink);
-    background:
-      radial-gradient(ellipse at 18% 12%, rgba(255, 250, 230, 0.55), transparent 55%),
-      radial-gradient(ellipse at 85% 90%, rgba(150, 110, 60, 0.16), transparent 60%),
-      var(--paper);
-    border: 2px solid var(--ink);
-    border-radius: 3px;
-    box-shadow: inset 0 0 0 5px var(--paper), inset 0 0 0 6px rgba(29, 26, 22, 0.55), 0 10px 0 rgba(0, 0, 0, 0.35), 0 18px 40px rgba(0, 0, 0, 0.35);
-  }
-  .eyebrow { font-family: var(--font-caps); font-size: 0.95rem; letter-spacing: 0.14em; color: var(--wax); }
-  h1, h2, h3 { font-family: var(--font-display); font-weight: 400; margin: 0; text-wrap: balance; line-height: 1.05; }
-  h2 { font-size: 2rem; color: var(--ink); }
-  .rule { height: 0; border: 0; border-top: 1px solid var(--ink); border-bottom: 3px double var(--ink); margin: 10px 0; opacity: 0.7; }
-  .muted { color: var(--muted); }
+  /* ---------- shared ---------- */
+  .eyebrow { font-family: var(--font-caps); letter-spacing: 0.22em; font-size: 0.9rem; color: var(--ash); }
+  h1, h2, h3 { font-family: var(--font-display); font-weight: 600; margin: 0; line-height: 1.02; text-wrap: balance; }
+  h2 { font-size: 2.4rem; }
+  .rule { border: 0; height: 1px; background: linear-gradient(90deg, transparent, var(--line-hi), transparent); margin: 14px 0; }
   .btn {
-    font-family: var(--font-caps); font-size: 1.05rem; letter-spacing: 0.06em;
-    color: var(--cream); background: var(--wax);
-    border: 2px solid var(--ink); border-radius: 3px;
-    padding: 0.55em 1.1em;
-    box-shadow: 0 4px 0 var(--ink), inset 0 0 0 2px rgba(255, 230, 200, 0.18);
-    cursor: pointer; transition: transform 0.08s, box-shadow 0.08s, filter 0.12s;
-    display: inline-flex; align-items: center; justify-content: center; gap: 0.4em;
+    font-family: var(--font-caps); font-size: 1.05rem; letter-spacing: 0.14em; font-weight: 600;
+    color: var(--bone); background: transparent; border: 1px solid var(--line-hi); padding: 0.6em 1.3em; border-radius: 2px;
+    cursor: pointer; transition: background 0.15s, border-color 0.15s, color 0.15s; display: inline-flex; align-items: center; justify-content: center; gap: 0.5em;
   }
-  .btn:hover { filter: brightness(1.1); }
-  .btn:active { transform: translateY(3px); box-shadow: 0 1px 0 var(--ink); }
-  .btn:disabled { background: #9c8f78; color: #e8dcc0; cursor: not-allowed; filter: none; }
-  .btn.alt { background: var(--paper-2); color: var(--ink); }
-  .btn.blue { background: var(--prussian); }
-  .btn.green { background: var(--verdigris); }
-  .btn.big { font-size: 1.3rem; padding: 0.55em 1.5em; }
-  .btn.small { font-size: 0.92rem; padding: 0.4em 0.75em; box-shadow: 0 3px 0 var(--ink); }
-  .btn:focus-visible, .card:focus-visible, .hero-card:focus-visible, .seg:focus-visible, .toggle:focus-visible, .icon-btn:focus-visible, .choice:focus-visible, input:focus-visible {
-    outline: 3px solid var(--gilt); outline-offset: 3px;
-  }
-  .pips { display: inline-flex; gap: 3px; }
-  .pips i { width: 10px; height: 10px; border: 1.5px solid var(--ink); border-radius: 50%; background: transparent; }
-  .pips i.on { background: var(--wax); }
-  .purse { font-family: var(--font-display); font-size: 1.15rem; color: var(--ink); display: inline-flex; align-items: center; gap: 0.35em; }
-  .purse .px { width: 22px; height: 22px; }
-  .btn-row { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 18px; align-items: center; }
-  .btn-row.center { justify-content: center; }
-  .grow { flex: 1; }
-  .spacer { flex: 1; }
-  .row-between { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+  .btn:hover { background: rgba(236, 227, 208, 0.08); border-color: var(--bone); }
+  .btn.primary { background: var(--blood); border-color: var(--blood-hi); }
+  .btn.primary:hover { background: var(--blood-hi); }
+  .btn:disabled { opacity: 0.35; cursor: not-allowed; }
+  .btn.small { font-size: 0.92rem; padding: 0.4em 0.9em; }
+  .btn.wide { width: 100%; }
+  .btn:focus-visible, .boon:focus-visible, .choice:focus-visible, .seg:focus-visible, .toggle:focus-visible, input:focus-visible { outline: 2px solid var(--brass); outline-offset: 3px; }
+  .panel { background: var(--panel); border: 1px solid var(--line); box-shadow: 0 30px 80px rgba(0, 0, 0, 0.6); border-radius: 2px; }
+  .btn-row { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 20px; }
+  .btn-col { display: flex; flex-direction: column; gap: 10px; margin-top: 18px; }
+  .row-between { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; flex-wrap: wrap; }
+  .muted { color: var(--ash); }
+  .pips { display: inline-flex; gap: 4px; }
+  .pips i { width: 9px; height: 9px; border: 1px solid var(--line-hi); transform: rotate(45deg); }
+  .pips i.on { background: var(--brass); border-color: var(--brass); }
+  .seg-row { display: flex; gap: 6px; flex-wrap: wrap; }
+  .seg { flex: 1; min-width: 90px; font-family: var(--font-caps); letter-spacing: 0.1em; padding: 0.5em 0.6em; background: transparent; border: 1px solid var(--line); color: var(--ash); cursor: pointer; border-radius: 2px; }
+  .seg.on { border-color: var(--brass); color: var(--bone); background: rgba(201, 162, 74, 0.12); }
+  .seg:disabled { opacity: 0.4; cursor: not-allowed; }
+  .years { display: flex; align-items: center; gap: 8px; color: var(--ash); }
+  .years b { font-family: var(--font-display); font-size: 1.6rem; color: var(--bone); font-weight: 600; }
+  blockquote, .quote { margin: 18px 0; padding-left: 16px; border-left: 1px solid var(--blood); font-family: var(--font-display); font-style: italic; font-size: 1.25rem; line-height: 1.35; color: var(--bone); }
+  .quote cite { display: block; margin-top: 6px; font-style: normal; font-family: var(--font-caps); letter-spacing: 0.12em; font-size: 0.85rem; color: var(--ash); }
+  .prose { display: flex; flex-direction: column; gap: 12px; font-size: 1.12rem; line-height: 1.55; max-width: 60ch; color: #ddd3c0; }
 
   /* ---------- screens ---------- */
   .screen { position: absolute; inset: 0; z-index: 20; }
-  .modal { display: grid; place-items: center; background: rgba(20, 16, 12, 0.5); padding: max(16px, var(--safe-t)) max(16px, var(--safe-r)) max(16px, var(--safe-b)) max(16px, var(--safe-l)); }
-  .modal > .paper { width: min(100%, 720px); max-height: 100%; overflow-y: auto; touch-action: pan-y; padding: 26px 28px; animation: rise 0.3s cubic-bezier(0.2, 1.3, 0.4, 1); }
-  @keyframes rise { from { transform: translateY(24px) rotate(-0.6deg); opacity: 0; } to { transform: none; opacity: 1; } }
-  .page {
-    position: absolute; top: max(16px, var(--safe-t)); bottom: max(16px, var(--safe-b)); left: max(20px, calc(var(--safe-l) + 16px));
-    width: min(560px, calc(100% - 40px)); overflow-y: auto; touch-action: pan-y; padding: 30px 34px; pointer-events: auto;
-    animation: turn 0.4s cubic-bezier(0.2, 1.1, 0.4, 1);
-  }
-  .page.right { left: auto; right: max(20px, calc(var(--safe-r) + 16px)); width: min(440px, calc(100% - 40px)); }
-  @keyframes turn { from { transform: translateX(-24px) rotate(-1deg); opacity: 0; } to { transform: none; opacity: 1; } }
-  .passthrough { pointer-events: none; }
-  .page > .btn-row:last-child { position: sticky; bottom: -30px; margin: 18px -6px -12px; padding: 14px 6px 12px; background: linear-gradient(rgba(236, 223, 192, 0), var(--paper) 35%); }
+  .scrim-left { background: linear-gradient(90deg, rgba(6, 4, 4, 0.94) 0%, rgba(6, 4, 4, 0.78) 38%, transparent 72%); }
+  .scrim { background: rgba(4, 3, 3, 0.72); }
+  .modal { display: grid; place-items: center; padding: max(16px, var(--safe-t)) max(16px, var(--safe-r)) max(16px, var(--safe-b)) max(16px, var(--safe-l)); }
+  .modal > .panel { width: min(100%, 680px); max-height: 100%; overflow-y: auto; touch-action: pan-y; padding: 30px 34px; animation: rise 0.35s ease-out; }
+  @keyframes rise { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
+  .side { position: absolute; top: 0; bottom: 0; left: 0; width: min(560px, 100%); overflow-y: auto; touch-action: pan-y;
+    padding: max(36px, calc(var(--safe-t) + 24px)) 40px max(36px, calc(var(--safe-b) + 24px)) max(40px, calc(var(--safe-l) + 24px)); display: flex; flex-direction: column; justify-content: center; animation: rise 0.4s ease-out; }
+  #loading { display: grid; place-items: center; background: var(--void); font-family: var(--font-display); font-size: 1.4rem; color: var(--ash); font-style: italic; }
 
-  #loading { display: grid; place-items: center; background: var(--ink); }
-  #loading p { font-family: var(--font-display); color: var(--gilt-hi); font-size: 1.5rem; text-align: center; padding: 0 16px; }
+  /* Title */
+  .logo { font-family: var(--font-display); font-weight: 700; font-size: clamp(3rem, 8vw, 5.6rem); letter-spacing: 0.06em; line-height: 0.92; color: var(--bone); text-shadow: 0 0 40px rgba(163, 32, 42, 0.45); margin: 0; }
+  .logo em { display: block; font-style: normal; color: var(--blood-hi); font-size: 0.3em; letter-spacing: 0.32em; margin-bottom: 8px; font-family: var(--font-caps); text-shadow: none; }
+  .sub { font-family: var(--font-display); font-style: italic; font-size: 1.3rem; color: var(--ash); margin-top: 12px; }
+  .menu { display: flex; flex-direction: column; gap: 10px; margin-top: 30px; max-width: 320px; }
+  .menu .btn { justify-content: flex-start; }
+  #title-meta { margin-top: 20px; color: var(--ash); display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+  .keys { margin-top: 14px; font-size: 0.95rem; color: var(--ash); line-height: 1.6; }
+  .keys kbd { font-family: var(--font-caps); border: 1px solid var(--line-hi); border-radius: 2px; padding: 0 6px; font-size: 0.85rem; color: var(--bone); }
 
-  /* Title: a playbill pinned over the island */
-  .playbill {
-    position: absolute; left: max(28px, calc(var(--safe-l) + 16px)); bottom: max(24px, calc(var(--safe-b) + 16px));
-    width: min(430px, calc(100% - 32px)); padding: 22px 26px 20px; text-align: center; pointer-events: auto;
-    display: flex; flex-direction: column; gap: 10px; animation: turn 0.5s cubic-bezier(0.2, 1.1, 0.4, 1);
-  }
-  .playbill .vol { font-family: var(--font-caps); letter-spacing: 0.2em; color: var(--wax); font-size: 0.95rem; }
-  .logo { display: flex; flex-direction: column; align-items: center; gap: 0; }
-  .logo .pips-name { font-family: var(--font-body); font-style: italic; font-size: 1.7rem; color: var(--ink); line-height: 1; }
-  .logo .big { font-family: var(--font-display); font-size: clamp(2.6rem, 8vw, 3.6rem); line-height: 0.95; color: var(--gilt); -webkit-text-stroke: 1.5px var(--ink); text-shadow: 3px 3px 0 var(--ink); letter-spacing: 0.01em; }
-  .playbill .sub { font-style: italic; font-size: 1.05rem; color: var(--muted); }
-  .playbill .tag { font-family: var(--font-caps); letter-spacing: 0.08em; font-size: 1rem; }
-  .menu-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 6px; }
-  .menu-actions .btn.big { grid-column: 1 / -1; }
-  .menu-meta { display: flex; flex-wrap: wrap; justify-content: center; gap: 4px 14px; align-items: center; font-size: 0.98rem; }
-  .keys { font-size: 0.9rem; color: var(--muted); }
-  .keys kbd { font-family: var(--font-caps); font-size: 0.85rem; border: 1.5px solid var(--ink); border-bottom-width: 3px; border-radius: 3px; padding: 0 5px; background: var(--paper-2); color: var(--ink); }
+  /* Letters on aged paper */
+  .letter { color: var(--ink); background: radial-gradient(ellipse at 20% 10%, #f2e9d4, transparent 60%), radial-gradient(ellipse at 90% 95%, rgba(120, 80, 30, 0.25), transparent 60%), var(--paper);
+    border: 1px solid #8a7550; box-shadow: 0 30px 80px rgba(0, 0, 0, 0.7), inset 0 0 60px rgba(120, 80, 30, 0.25); padding: 34px 40px; width: min(100%, 600px); max-height: 100%; overflow-y: auto; animation: rise 0.4s ease-out; font-family: var(--font-display); }
+  .letter .eyebrow { color: #7a2a20; }
+  .letter .date { font-style: italic; color: #5a4a38; margin-top: 4px; }
+  .letter .prose { color: #2a201a; font-family: var(--font-display); font-size: 1.28rem; line-height: 1.45; }
+  .letter .sign { text-align: right; font-style: italic; font-size: 1.3rem; margin-top: 16px; }
+  .letter .btn { color: var(--ink); border-color: #8a7550; }
+  .letter .btn.primary { color: var(--bone); }
 
-  /* Journey: a table of contents */
-  .years { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; font-size: 1.12rem; }
-  .years .px { width: 24px; height: 24px; }
-  .years b { font-family: var(--font-display); font-size: 1.5rem; font-weight: 400; color: var(--wax); }
-  .years small { color: var(--muted); font-size: 0.92rem; }
-  #journey-list { list-style: none; padding: 0; margin: 14px 0 6px; display: flex; flex-direction: column; gap: 4px; }
-  .ch-row { display: grid; grid-template-columns: 2.4rem 1fr auto; align-items: center; gap: 10px; padding: 8px 0; border-bottom: 1px dotted var(--ink-faint); }
-  .ch-num { font-family: var(--font-display); font-size: 1.5rem; color: var(--wax); text-align: center; }
-  .ch-text { display: flex; flex-direction: column; min-width: 0; }
-  .ch-text b { font-family: var(--font-display); font-weight: 400; font-size: 1.2rem; }
-  .ch-note { font-style: italic; color: var(--muted); font-size: 0.92rem; }
-  .ch-row.locked { opacity: 0.55; }
-  .ch-row.current { background: linear-gradient(90deg, rgba(201, 162, 39, 0.22), transparent); }
-  #journey-note { font-style: italic; color: var(--muted); margin-top: 6px; }
+  /* Act intro */
+  .act-num { font-family: var(--font-caps); letter-spacing: 0.4em; color: var(--blood-hi); font-size: 1.05rem; }
+  #intro-title, #outro-title { font-size: clamp(2.6rem, 6vw, 4rem); margin-top: 6px; }
+  #intro-date { font-style: italic; color: var(--ash); margin-top: 6px; font-family: var(--font-display); font-size: 1.15rem; }
+  #intro-years, #or-years { margin-top: 18px; }
 
-  /* Chapter page */
-  .chapter-num { font-family: var(--font-caps); letter-spacing: 0.3em; color: var(--wax); text-align: center; }
-  #chapter-title { font-size: clamp(2.2rem, 5vw, 3rem); text-align: center; color: var(--ink); }
-  #chapter-date { text-align: center; font-style: italic; color: var(--muted); margin-top: 4px; }
-  blockquote, #chapter-quote { margin: 16px 8px; padding: 0 0 0 14px; border-left: 3px double var(--wax); font-style: italic; font-size: 1.05rem; color: var(--ink); }
-  blockquote cite, #chapter-quote cite { display: block; font-style: normal; font-family: var(--font-caps); font-size: 0.85rem; letter-spacing: 0.08em; color: var(--muted); margin-top: 4px; }
-  .prose { display: flex; flex-direction: column; gap: 10px; font-size: 1.1rem; line-height: 1.5; max-width: 62ch; }
-  .prose > p:first-child::first-letter { font-family: var(--font-display); float: left; font-size: 3.4rem; line-height: 0.85; padding: 4px 8px 0 0; color: var(--wax); }
-  .fortune { display: flex; align-items: center; gap: 8px; background: rgba(201, 162, 39, 0.2); border: 1px solid var(--gilt); padding: 8px 10px; border-radius: 3px; }
-  .practice-note { font-style: italic; color: var(--prussian); }
-  #chapter-goals { margin: 6px 0 0; padding-left: 1.2em; font-size: 1.05rem; }
-  #chapter-goals li { margin: 3px 0; }
+  /* Boons */
+  #boons { display: grid; place-items: center; }
+  .boon-wrap { width: min(100%, 980px); padding: 16px; text-align: center; animation: rise 0.3s ease-out; }
+  #boon-cards { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; margin-top: 20px; }
+  .boon { position: relative; text-align: left; display: flex; flex-direction: column; gap: 8px; padding: 22px 20px 20px; min-height: 270px; background: linear-gradient(180deg, rgba(30, 22, 22, 0.96), rgba(12, 9, 9, 0.96)); border: 1px solid var(--line); cursor: pointer; border-radius: 2px; transition: transform 0.15s, border-color 0.15s, box-shadow 0.15s; color: var(--bone); }
+  .boon:hover { transform: translateY(-4px); border-color: var(--line-hi); }
+  .boon.rare { border-color: rgba(124, 240, 255, 0.35); }
+  .boon.rare:hover { box-shadow: 0 0 30px rgba(124, 240, 255, 0.15); }
+  .boon.promethean { border-color: rgba(208, 48, 58, 0.6); background: linear-gradient(180deg, rgba(60, 14, 16, 0.96), rgba(16, 8, 8, 0.96)); }
+  .boon.promethean:hover { box-shadow: 0 0 34px rgba(208, 48, 58, 0.3); }
+  .boon-key { position: absolute; top: 10px; right: 14px; font-family: var(--font-caps); color: var(--ash); }
+  .boon-art { width: 54px; height: 54px; display: grid; place-items: center; border: 1px solid var(--line); border-radius: 50%; color: var(--bone); }
+  .boon.rare .boon-art { color: var(--galv); border-color: rgba(124, 240, 255, 0.4); }
+  .boon.promethean .boon-art { color: var(--blood-hi); border-color: rgba(208, 48, 58, 0.6); }
+  .boon-art .ico { width: 28px; height: 28px; }
+  .boon-tag { font-family: var(--font-caps); letter-spacing: 0.16em; font-size: 0.85rem; color: var(--ash); }
+  .boon-name { font-family: var(--font-display); font-size: 1.6rem; font-weight: 600; line-height: 1.05; }
+  .boon-desc { font-size: 1.05rem; line-height: 1.4; color: #d6ccba; }
+  .boon-cost { margin-top: auto; color: var(--blood-hi); font-family: var(--font-caps); letter-spacing: 0.06em; display: flex; gap: 6px; align-items: center; }
 
-  /* Companion select */
-  #hero-list { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-  .hero-card {
-    text-align: left; background: var(--paper-2); color: var(--ink); border: 2px solid var(--ink); border-radius: 3px; padding: 10px; cursor: pointer;
-    display: flex; flex-direction: column; gap: 6px; box-shadow: 0 3px 0 var(--ink); min-width: 0;
-  }
-  .hero-card.sel { background: #f6ecd2; box-shadow: 0 3px 0 var(--ink), inset 0 0 0 3px var(--gilt); }
-  .hero-card.locked { opacity: 0.72; }
-  .hero-head { display: grid; grid-template-columns: 1fr auto; column-gap: 6px; }
-  .hero-head b { font-family: var(--font-display); font-weight: 400; font-size: 1.15rem; line-height: 1.1; }
-  .hero-head small { grid-row: 2; color: var(--muted); font-style: italic; font-size: 0.9rem; }
-  .hero-weapon { grid-row: 1 / span 2; grid-column: 2; width: 30px !important; height: 30px !important; align-self: center; }
-  .hero-stats { display: grid; grid-template-columns: auto 1fr; gap: 3px 8px; align-items: center; font-size: 0.85rem; color: var(--muted); }
-  .bar { height: 7px; background: rgba(29, 26, 22, 0.2); border-radius: 2px; overflow: hidden; }
-  .bar i { display: block; height: 100%; background: var(--verdigris); }
-  .lock { font-size: 0.88rem; color: var(--wax); font-style: italic; }
-  #hero-blurb { line-height: 1.4; min-height: 2.8em; font-size: 1.05rem; }
-  .seg-row { display: flex; gap: 6px; margin-top: 6px; }
-  .seg { flex: 1; font-family: var(--font-caps); font-size: 0.98rem; padding: 0.45em 0.4em; border: 2px solid var(--ink); border-radius: 3px; background: var(--paper-2); color: var(--ink); cursor: pointer; box-shadow: 0 2px 0 var(--ink); }
-  .seg.on { background: var(--prussian); color: var(--cream); }
-  .seg:disabled { opacity: 0.5; cursor: not-allowed; }
-  #diff-desc { font-style: italic; color: var(--muted); margin-top: 6px; }
-  .side { display: flex; flex-direction: column; gap: 12px; }
+  /* Dice */
+  #dice-faces { display: flex; justify-content: center; gap: 18px; margin: 18px 0 8px; }
+  .die { width: 66px; height: 66px; display: grid; grid-template-columns: repeat(3, 1fr); grid-template-rows: repeat(3, 1fr); padding: 9px; gap: 3px; background: #ece3d0; border-radius: 10px; box-shadow: inset -4px -4px 0 rgba(0, 0, 0, 0.15), 0 6px 18px rgba(0, 0, 0, 0.5); }
+  .die i { border-radius: 50%; }
+  .die i.pip { background: #1c1512; }
+  #dice-msg, #fate-msg { text-align: center; font-family: var(--font-display); font-style: italic; font-size: 1.2rem; min-height: 2.6em; }
+  #dice-point { text-align: center; font-family: var(--font-caps); color: var(--brass); letter-spacing: 0.12em; min-height: 1.3em; }
+  #dice-rules { color: var(--ash); font-size: 0.98rem; margin-top: 14px; line-height: 1.45; }
+  .odds { color: var(--galv); font-family: var(--font-caps); letter-spacing: 0.06em; font-size: 0.92rem; margin-top: 6px; }
+  #dice .panel { text-align: center; }
+  #dice-purse { display: flex; gap: 8px; justify-content: center; color: var(--ash); }
 
-  /* High Street */
-  .shop-head { font-family: var(--font-display); font-size: 1.35rem; margin-top: 18px; display: flex; align-items: baseline; gap: 10px; }
-  .shop-head small { font-family: var(--font-body); font-style: italic; color: var(--muted); font-size: 0.95rem; }
-  #shop-list, #remedy-list { display: grid; grid-template-columns: 1fr 1fr; gap: 0 18px; margin-top: 6px; }
-  .shop-item { display: grid; grid-template-columns: auto 1fr auto; gap: 10px; align-items: center; padding: 8px 0; border-bottom: 1px dotted var(--ink-faint); min-width: 0; }
-  .shop-icon { width: 34px !important; height: 34px !important; }
-  .shop-text { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
-  .shop-text b { font-family: var(--font-display); font-weight: 400; font-size: 1.02rem; }
-  .shop-text span { font-size: 0.95rem; color: var(--muted); }
-  .shop-text .note { font-style: italic; font-size: 0.88rem; }
-  #apothecary-note { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; font-size: 1rem; }
-  #apothecary-note b { font-family: var(--font-display); font-weight: 400; color: var(--wax); font-size: 1.2rem; }
+  /* Death */
+  #dead { display: grid; place-items: center; background: radial-gradient(ellipse at center, rgba(60, 0, 0, 0.55), rgba(0, 0, 0, 0.9)); text-align: center; padding: 16px; }
+  .dead-title { font-family: var(--font-display); font-size: clamp(3rem, 9vw, 6rem); letter-spacing: 0.2em; color: var(--blood-hi); font-weight: 600; text-shadow: 0 0 40px rgba(208, 48, 58, 0.5); animation: rise 1s ease-out; }
+  #dead-sub { color: var(--ash); font-style: italic; margin-top: 8px; font-family: var(--font-display); font-size: 1.2rem; }
+  #dead-years { justify-content: center; margin-top: 16px; }
+  #fate-die { margin: 18px 0 6px; display: flex; justify-content: center; }
+  #dead .btn-row { justify-content: center; }
 
-  /* Keepsakes */
-  #keep-list { list-style: none; padding: 0; margin: 14px 0 0; display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-  .keep { display: grid; grid-template-columns: auto 1fr; gap: 10px; align-items: center; padding: 10px; border: 1.5px dashed var(--ink-faint); border-radius: 3px; }
-  .keep.found { border-style: solid; border-color: var(--gilt); background: rgba(201, 162, 39, 0.12); }
-  .keep-icon { width: 48px; height: 48px; display: grid; place-items: center; font-family: var(--font-display); font-size: 1.6rem; color: var(--muted); background: rgba(29, 26, 22, 0.08); border-radius: 3px; }
-  .keep-icon .px { width: 40px; height: 40px; }
-  .keep-text { display: flex; flex-direction: column; min-width: 0; }
-  .keep-text b { font-family: var(--font-display); font-weight: 400; }
-  .keep-text span { font-style: italic; color: var(--muted); font-size: 0.95rem; }
+  /* Choices */
+  .choice { text-align: left; display: flex; flex-direction: column; gap: 3px; padding: 14px 16px; background: rgba(236, 227, 208, 0.04); border: 1px solid var(--line); border-radius: 2px; cursor: pointer; color: var(--bone); transition: border-color 0.15s, background 0.15s; }
+  .choice:hover { border-color: var(--brass); background: rgba(201, 162, 74, 0.08); }
+  .choice b { font-family: var(--font-display); font-size: 1.35rem; font-weight: 600; }
+  .choice span { color: var(--ash); font-style: italic; }
+  #outro-prompt, #final-prompt { margin-top: 20px; font-family: var(--font-display); font-size: 1.25rem; font-style: italic; }
+  .choices { display: flex; flex-direction: column; gap: 10px; margin-top: 14px; }
+  #or-gain { list-style: none; padding: 0; margin: 14px 0 0; display: flex; flex-direction: column; gap: 6px; }
+  #or-gain li { display: flex; gap: 8px; align-items: center; }
+  #or-text { font-family: var(--font-display); font-style: italic; font-size: 1.3rem; line-height: 1.4; }
 
-  /* Settings and codes */
-  #settings-list { display: flex; flex-direction: column; gap: 6px; margin: 12px 0; }
-  .toggle { display: flex; justify-content: space-between; align-items: center; background: var(--paper-2); color: var(--ink); border: 2px solid var(--ink); border-radius: 3px; padding: 10px 12px; cursor: pointer; font-size: 1.05rem; }
-  .toggle b { font-family: var(--font-caps); font-weight: 400; color: var(--wax); }
-  .toggle[aria-pressed="true"] b { color: var(--verdigris); }
+  /* Ending */
+  #end-stone { margin: 18px 0; width: min(100%, 320px); text-align: center; padding: 22px 12px 18px; background: linear-gradient(#3a3a40, #26262b); border: 1px solid #55555c; border-radius: 120px 120px 2px 2px; display: flex; flex-direction: column; gap: 2px; font-family: var(--font-caps); letter-spacing: 0.16em; color: #d8d4cc; }
+  #end-stone b { font-family: var(--font-display); font-size: 1.9rem; letter-spacing: 0.04em; font-weight: 600; }
+  #end-title { font-size: 2rem; color: var(--brass); }
+  #end-text { margin-top: 8px; line-height: 1.55; font-size: 1.08rem; color: #ddd3c0; }
+  .ledger { list-style: none; padding: 0; margin: 10px 0 0; }
+  .ledger li { display: flex; justify-content: space-between; gap: 12px; padding: 6px 0; border-bottom: 1px solid var(--line); font-size: 1rem; }
+  .ledger b { font-family: var(--font-display); font-weight: 600; white-space: nowrap; }
+  .ledger b.up { color: #8fd08a; }
+  .ledger b.down { color: var(--blood-hi); }
+  #end-sum { margin-top: 12px; }
+
+  /* Lab, journal, settings */
+  .lab-item { display: grid; grid-template-columns: auto 1fr auto; gap: 14px; align-items: center; padding: 12px 0; border-bottom: 1px solid var(--line); }
+  .lab-ico { width: 30px; height: 30px; color: var(--brass); }
+  .lab-text { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+  .lab-text b { font-family: var(--font-display); font-size: 1.25rem; font-weight: 600; }
+  .lab-text span { color: var(--ash); }
+  #journal-letters { list-style: none; padding: 0; margin: 12px 0 0; display: flex; flex-direction: column; gap: 10px; }
+  #journal-letters li { padding: 12px 14px; border: 1px dashed var(--line); display: flex; flex-direction: column; gap: 4px; color: var(--ash); }
+  #journal-letters li.found { border-style: solid; color: #d6ccba; }
+  #journal-letters b { font-family: var(--font-display); font-size: 1.15rem; color: var(--bone); }
+  #journal-acts { margin-top: 18px; display: flex; flex-direction: column; gap: 8px; }
+  #settings-list { display: flex; flex-direction: column; gap: 6px; margin: 14px 0; }
+  .toggle { display: flex; justify-content: space-between; align-items: center; padding: 10px 12px; background: transparent; border: 1px solid var(--line); border-radius: 2px; cursor: pointer; font-size: 1.05rem; }
+  .toggle b { font-family: var(--font-caps); letter-spacing: 0.1em; color: var(--blood-hi); }
+  .toggle[aria-pressed="true"] b { color: #8fd08a; }
   .toggle.mini { padding: 4px 10px; }
-  .code-entry { display: flex; gap: 8px; margin-top: 8px; }
-  #code-input { flex: 1; min-width: 0; font-family: var(--font-caps); letter-spacing: 0.12em; font-size: 1.05rem; padding: 8px 10px; border: 2px solid var(--ink); border-radius: 3px; background: #f6ecd2; color: var(--ink); text-transform: uppercase; }
-  #code-msg { min-height: 1.4em; margin-top: 6px; font-style: italic; }
-  #code-msg[data-ok="1"] { color: var(--verdigris); }
-  #code-msg[data-ok="0"] { color: var(--wax); }
-  #codes-list { list-style: none; padding: 0; margin: 8px 0 0; display: flex; flex-direction: column; gap: 4px; }
-  .code-row { display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 6px 0; border-bottom: 1px dotted var(--ink-faint); }
+  .code-entry { display: flex; gap: 8px; margin-top: 10px; }
+  #code-input { flex: 1; min-width: 0; font-family: var(--font-caps); letter-spacing: 0.16em; font-size: 1.05rem; padding: 8px 12px; background: rgba(0, 0, 0, 0.4); border: 1px solid var(--line-hi); border-radius: 2px; text-transform: uppercase; }
+  #code-msg { min-height: 1.4em; margin-top: 8px; font-style: italic; color: var(--ash); }
+  #code-msg[data-ok="1"] { color: #8fd08a; }
+  #codes-list { list-style: none; padding: 0; margin: 8px 0 0; }
+  .code-row { display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 8px 0; border-bottom: 1px solid var(--line); }
   .code-row span { display: flex; flex-direction: column; }
-  .code-row b { font-family: var(--font-display); font-weight: 400; }
-  .code-row small { font-style: italic; color: var(--muted); font-size: 0.92rem; }
-  .code-row em { font-family: var(--font-caps); font-style: normal; color: var(--muted); }
-
-  /* The Blue Boar */
-  #dice .paper { text-align: center; width: min(100%, 520px); }
-  #dice-faces { display: flex; justify-content: center; gap: 18px; margin: 18px 0 10px; }
-  .die { width: 72px; height: 72px; display: grid; grid-template-columns: repeat(3, 1fr); grid-template-rows: repeat(3, 1fr); padding: 9px; gap: 3px; background: #f7f0de; border: 2px solid var(--ink); border-radius: 12px; box-shadow: 0 4px 0 var(--ink), inset -4px -4px 0 rgba(0, 0, 0, 0.08); }
-  .die i { display: block; border-radius: 50%; }
-  .die i.pip { background: var(--ink); }
-  #dice-msg { font-size: 1.15rem; font-style: italic; min-height: 2.8em; }
-  #dice-point { font-family: var(--font-caps); color: var(--wax); letter-spacing: 0.08em; margin-top: 4px; }
-  #dice-wagers { justify-content: center; max-width: 300px; margin: 12px auto 0; }
-  #dice-rules { font-size: 0.95rem; color: var(--muted); margin-top: 14px; line-height: 1.4; }
-  .odds { font-family: var(--font-caps); font-size: 0.9rem; color: var(--prussian); margin-top: 6px; letter-spacing: 0.04em; }
-
-  /* Outro choices */
-  #outro-prompt { font-size: 1.12rem; margin-top: 16px; font-weight: 400; }
-  #outro-choices { display: flex; flex-direction: column; gap: 10px; margin-top: 12px; }
-  .choice { text-align: left; display: flex; flex-direction: column; gap: 2px; padding: 12px 14px; background: #f6ecd2; color: var(--ink); border: 2px solid var(--ink); border-radius: 3px; cursor: pointer; box-shadow: 0 3px 0 var(--ink); transition: transform 0.1s; }
-  .choice:hover { transform: translateX(4px); background: #fff6df; }
-  .choice b { font-family: var(--font-display); font-weight: 400; font-size: 1.2rem; }
-  .choice span { font-style: italic; color: var(--muted); }
-
-  /* Ledger: an account book */
-  .ledger-paper { background-image: repeating-linear-gradient(transparent 0 29px, rgba(31, 58, 95, 0.18) 29px 30px), linear-gradient(90deg, transparent 38px, rgba(158, 42, 43, 0.5) 38px 40px, transparent 40px); }
-  #ledger-result { font-style: italic; font-size: 1.1rem; margin: 12px 0; line-height: 1.45; }
-  .ledger-rows { list-style: none; padding: 0; margin: 8px 0; }
-  .ledger-rows li { display: flex; justify-content: space-between; gap: 12px; padding: 5px 0 5px 48px; border-bottom: 1px solid rgba(31, 58, 95, 0.18); font-size: 1.05rem; }
-  .ledger-rows li i { font-family: var(--font-caps); font-style: normal; color: var(--wax); }
-  .ledger-rows b { font-family: var(--font-display); font-weight: 400; white-space: nowrap; font-variant-numeric: tabular-nums; }
-  .ledger-rows b.up { color: var(--verdigris); }
-  .ledger-rows b.down { color: var(--wax); }
-  #ledger-extras { list-style: none; padding: 0; margin: 10px 0; display: flex; flex-direction: column; gap: 4px; }
-  #ledger-extras li { display: flex; gap: 8px; align-items: center; }
-  .total { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; font-size: 1.12rem; padding: 10px 0; border-top: 3px double var(--ink); }
-  .total b { font-family: var(--font-display); font-weight: 400; color: var(--wax); font-size: 1.5rem; }
-  .total small { color: var(--muted); }
-
-  /* Epilogue */
-  #epi-stone { margin: 16px auto; width: min(100%, 300px); text-align: center; padding: 18px 12px; background: linear-gradient(#b9b9b4, #9d9d98); color: #2d2d2a; border: 2px solid var(--ink); border-radius: 60px 60px 4px 4px; box-shadow: 0 6px 0 var(--ink); display: flex; flex-direction: column; gap: 2px; font-family: var(--font-caps); letter-spacing: 0.1em; }
-  #epi-stone b { font-family: var(--font-display); font-weight: 400; font-size: 1.6rem; letter-spacing: 0.02em; }
-  #epi-tier { text-align: center; font-size: 1.6rem; color: var(--wax); }
-  #epi-tier-text { text-align: center; font-style: italic; max-width: 52ch; margin: 6px auto 0; line-height: 1.45; }
-  #epi-facts { font-size: 0.98rem; color: var(--prussian); margin: 14px 0 6px; line-height: 1.45; }
-  #epi-keepsakes { font-family: var(--font-caps); color: var(--muted); }
+  .code-row b { font-family: var(--font-display); font-weight: 600; font-size: 1.1rem; }
+  .code-row small { color: var(--ash); font-style: italic; }
+  .code-row em { font-family: var(--font-caps); color: var(--ash); font-style: normal; }
+  .controls-grid { display: grid; grid-template-columns: auto 1fr; gap: 8px 18px; margin-top: 14px; align-items: baseline; }
+  .controls-grid kbd { font-family: var(--font-caps); border: 1px solid var(--line-hi); border-radius: 2px; padding: 1px 8px; white-space: nowrap; }
 
   /* ---------- HUD ---------- */
   #hud { position: absolute; inset: 0; z-index: 10; pointer-events: none; }
-  .xpbar { position: absolute; top: 0; left: 0; right: 0; height: calc(14px + var(--safe-t)); padding-top: var(--safe-t); background: var(--ink); }
-  #xp-fill { height: 14px; width: 0; background: linear-gradient(180deg, var(--gilt-hi) 0 35%, var(--gilt) 35% 100%); transition: width 0.12s; }
-  #lvl { position: absolute; left: max(10px, var(--safe-l)); top: calc(var(--safe-t) - 1px); font-family: var(--font-caps); font-size: 0.85rem; color: var(--cream); text-shadow: 0 1px 0 var(--ink), 1px 0 0 var(--ink), -1px 0 0 var(--ink); }
-  .hud-row {
-    position: absolute; top: calc(var(--safe-t) + 22px); left: max(12px, var(--safe-l)); right: max(12px, var(--safe-r));
-    display: grid; grid-template-columns: 1fr auto 1fr; align-items: start; gap: 10px;
-  }
-  .hud-left { display: flex; flex-direction: column; gap: 7px; min-width: 0; }
-  .hpbar { position: relative; width: min(240px, 100%); height: 22px; background: #3a1414; border: 2px solid var(--ink); border-radius: 3px; overflow: hidden; box-shadow: 0 3px 0 var(--ink); }
-  #hp-fill { height: 100%; width: 100%; background: linear-gradient(180deg, #e06a5a 0 35%, #b23a33 35% 100%); transition: width 0.15s; }
-  #hp-text { position: absolute; inset: 0; display: grid; place-items: center; font-family: var(--font-caps); font-size: 0.85rem; color: var(--cream); text-shadow: 0 1px 0 var(--ink), 1px 0 0 var(--ink), -1px 0 0 var(--ink), 0 -1px 0 var(--ink); font-variant-numeric: tabular-nums; }
-  #slots { display: flex; flex-wrap: wrap; gap: 5px; max-width: 300px; }
-  .slot { position: relative; width: 34px; height: 34px; display: grid; place-items: center; background: var(--ink-soft); border: 2px solid var(--ink); border-radius: 3px; }
-  .slot.weapon { border-color: var(--gilt); }
-  .slot.passive { border-color: #6f8fb8; }
-  .slot .px { width: 24px; height: 24px; }
-  .slot b { position: absolute; right: -4px; bottom: -5px; font-family: var(--font-caps); font-weight: 400; font-size: 0.7rem; background: var(--ink); color: var(--gilt-hi); border-radius: 3px; padding: 0 3px; }
-  .hud-center { text-align: center; display: flex; flex-direction: column; align-items: center; gap: 4px; }
-  #timer { font-family: var(--font-display); font-size: 1.9rem; line-height: 1; color: var(--cream); text-shadow: 0 3px 0 var(--ink), 2px 0 0 var(--ink), -2px 0 0 var(--ink), 0 -2px 0 var(--ink); font-variant-numeric: tabular-nums; }
-  #objective { font-size: 1rem; background: var(--ink-soft); padding: 3px 12px; border-radius: 3px; border: 1px solid rgba(234, 208, 122, 0.4); max-width: min(520px, 60vw); text-wrap: balance; }
-  .hud-right { display: flex; justify-content: flex-end; flex-wrap: wrap; gap: 6px; align-items: center; }
-  .chip { display: inline-flex; align-items: center; gap: 5px; background: var(--ink-soft); border: 2px solid var(--ink); border-radius: 3px; padding: 2px 8px; font-family: var(--font-display); font-size: 0.95rem; color: var(--cream); font-variant-numeric: tabular-nums; }
-  .chip .px { width: 18px; height: 18px; }
-  .bloombar { width: 54px; height: 8px; background: #3a3355; border-radius: 2px; overflow: hidden; }
-  .bloombar i { display: block; height: 100%; width: 0; background: linear-gradient(90deg, #7ed957, #ff8fb1); transition: width 0.3s; }
-  .story-chips { display: flex; gap: 6px; flex-wrap: wrap; }
-  #chances { color: #ff8f8f; letter-spacing: 0.08em; font-family: var(--font-body); font-size: 1.1rem; }
-  #life-chip.bump { animation: bump 0.6s ease; }
-  @keyframes bump { 30% { transform: scale(1.18); background: var(--wax); } }
-  #fever-chip { background: rgba(178, 58, 51, 0.9); animation: throb 1s ease-in-out infinite; font-family: var(--font-caps); }
-  @keyframes throb { 50% { filter: brightness(1.3); } }
-  #cheat-chip { background: rgba(31, 58, 95, 0.9); font-family: var(--font-caps); font-size: 0.85rem; }
-  .icon-btn { pointer-events: auto; width: 38px; height: 38px; border-radius: 3px; border: 2px solid var(--ink); background: var(--paper-2); color: var(--ink); font-family: var(--font-display); font-size: 1rem; cursor: pointer; box-shadow: 0 3px 0 var(--ink); }
-  #combo { position: absolute; right: max(18px, var(--safe-r)); top: 40%; text-align: right; line-height: 0.9; }
-  #combo b { display: block; font-family: var(--font-display); font-weight: 400; font-size: 2.6rem; color: var(--gilt-hi); text-shadow: 0 3px 0 var(--ink), 2px 0 0 var(--ink), -2px 0 0 var(--ink); }
-  #combo span { font-family: var(--font-caps); font-size: 0.95rem; color: var(--cream); text-shadow: 0 2px 0 var(--ink); letter-spacing: 0.14em; }
-  #combo[data-tier="1"] b { color: #ffb04a; }
-  #combo[data-tier="2"] b { color: #ff8f8f; font-size: 3rem; }
-  #combo[data-tier="3"] b { color: #d9b8ff; font-size: 3.4rem; }
-  #hint { position: absolute; left: 50%; bottom: max(28px, calc(var(--safe-b) + 18px)); transform: translateX(-50%); background: var(--ink-soft); border: 1px solid rgba(234, 208, 122, 0.4); border-radius: 3px; padding: 8px 16px; font-size: 1.05rem; white-space: nowrap; max-width: calc(100% - 32px); overflow: hidden; text-overflow: ellipsis; }
-  #vignette { position: absolute; inset: 0; pointer-events: none; z-index: 5; opacity: 0; background: radial-gradient(ellipse at center, transparent 55%, rgba(200, 30, 30, 0.55) 100%); }
-  #flash { position: absolute; inset: 0; pointer-events: none; z-index: 6; opacity: 0; }
-  #flash.go { animation: flash 0.4s ease-out; }
-  @keyframes flash { from { opacity: 1; } to { opacity: 0; } }
-
-  #bossbar { position: absolute; z-index: 11; top: calc(var(--safe-t) + 100px); left: 50%; transform: translateX(-50%); width: min(560px, calc(100% - 32px)); pointer-events: none; text-align: center; }
-  #boss-name { font-family: var(--font-display); font-size: 1.15rem; color: var(--cream); text-shadow: 0 2px 0 var(--ink), 1px 0 0 var(--ink), -1px 0 0 var(--ink); }
-  .boss-track { height: 14px; background: #2a1030; border: 2px solid var(--ink); border-radius: 3px; overflow: hidden; margin-top: 3px; box-shadow: 0 3px 0 var(--ink); }
-  #boss-fill { height: 100%; width: 100%; background: linear-gradient(180deg, #d99ad8 0 35%, #9b4a9a 35% 100%); transition: width 0.15s; }
-
-  #banner { position: absolute; z-index: 12; left: 50%; top: 24%; transform: translateX(-50%); text-align: center; pointer-events: none; width: min(92%, 680px); }
-  #banner.show { animation: pop 0.45s cubic-bezier(0.2, 1.6, 0.4, 1); }
-  @keyframes pop { from { transform: translateX(-50%) scale(0.6); opacity: 0; } to { transform: translateX(-50%) scale(1); opacity: 1; } }
-  #banner-title { font-family: var(--font-display); font-size: clamp(1.6rem, 5vw, 2.7rem); color: var(--gilt-hi); text-shadow: 0 4px 0 var(--ink), 3px 0 0 var(--ink), -3px 0 0 var(--ink), 0 -3px 0 var(--ink); text-wrap: balance; }
-  #banner-sub { margin-top: 6px; font-style: italic; font-size: 1.15rem; text-shadow: 0 2px 0 var(--ink), 1px 0 0 var(--ink), -1px 0 0 var(--ink), 0 0 12px var(--ink); }
+  .hud-tl { position: absolute; top: max(16px, calc(var(--safe-t) + 10px)); left: max(16px, calc(var(--safe-l) + 10px)); width: min(300px, 42vw); display: flex; flex-direction: column; gap: 7px; }
+  .bar { position: relative; height: 14px; background: rgba(0, 0, 0, 0.6); border: 1px solid var(--line-hi); }
+  .bar > i { display: block; height: 100%; width: 100%; transition: width 0.12s; }
+  #hp-fill { background: linear-gradient(180deg, #c8323c, #7a141c); }
+  #hp-text { position: absolute; inset: 0; display: grid; place-items: center; font-family: var(--font-display); font-weight: 700; font-size: 0.85rem; letter-spacing: 0.06em; text-shadow: 0 1px 2px #000; }
+  #gal { height: 7px; }
+  #gal-fill { background: linear-gradient(90deg, #2a8fa8, var(--galv)); }
+  #gal.ready { box-shadow: 0 0 12px rgba(124, 240, 255, 0.6); border-color: var(--galv); animation: pulse 0.9s ease-in-out infinite; }
+  @keyframes pulse { 50% { box-shadow: 0 0 22px rgba(124, 240, 255, 0.9); } }
+  .hud-row { display: flex; gap: 12px; align-items: center; }
+  #tonics { display: flex; gap: 2px; }
+  .flask { color: rgba(236, 227, 208, 0.25); }
+  .flask.on { color: #d0303a; }
+  .flask .ico { width: 20px; height: 20px; }
+  #dodges { display: flex; gap: 5px; }
+  #dodges i { width: 10px; height: 10px; border: 1px solid var(--line-hi); transform: rotate(45deg); }
+  #dodges i.on { background: var(--bone); }
+  .gal-key { font-family: var(--font-caps); font-size: 0.8rem; color: var(--galv); letter-spacing: 0.1em; }
+  .hud-tc { position: absolute; top: max(14px, calc(var(--safe-t) + 8px)); left: 50%; transform: translateX(-50%); text-align: center; width: min(560px, 46vw); }
+  #loc { font-family: var(--font-caps); letter-spacing: 0.22em; color: var(--ash); font-size: 0.92rem; }
+  #objective { font-family: var(--font-display); font-style: italic; font-size: 1.15rem; text-shadow: 0 1px 3px #000; }
+  .hud-tr { position: absolute; top: max(14px, calc(var(--safe-t) + 8px)); right: max(16px, calc(var(--safe-r) + 10px)); display: flex; gap: 14px; align-items: center; }
+  .stat { display: flex; align-items: center; gap: 6px; font-family: var(--font-display); font-size: 1.15rem; text-shadow: 0 1px 3px #000; }
+  .stat .ico { color: var(--brass); }
+  #years-chip.bump { animation: bump 0.7s ease; }
+  @keyframes bump { 30% { transform: scale(1.25); color: var(--blood-hi); } }
+  #cheat-chip { font-family: var(--font-caps); letter-spacing: 0.12em; font-size: 0.8rem; color: var(--galv); border: 1px solid rgba(124, 240, 255, 0.5); padding: 1px 8px; }
+  .icon-btn { pointer-events: auto; width: 36px; height: 36px; border: 1px solid var(--line-hi); background: rgba(0, 0, 0, 0.5); color: var(--bone); cursor: pointer; border-radius: 2px; font-family: var(--font-display); font-weight: 700; }
+  #hud-boons { position: absolute; left: max(16px, calc(var(--safe-l) + 10px)); bottom: max(16px, calc(var(--safe-b) + 10px)); display: flex; gap: 6px; flex-wrap: wrap; max-width: 46vw; }
+  .boon-ico { position: relative; width: 32px; height: 32px; display: grid; place-items: center; border: 1px solid var(--line); background: rgba(0, 0, 0, 0.55); color: var(--bone); border-radius: 50%; }
+  .boon-ico.rare { color: var(--galv); border-color: rgba(124, 240, 255, 0.4); }
+  .boon-ico.promethean { color: var(--blood-hi); border-color: rgba(208, 48, 58, 0.6); }
+  .boon-ico .ico { width: 17px; height: 17px; }
+  .boon-ico b { position: absolute; right: -4px; bottom: -4px; font-family: var(--font-display); font-size: 0.75rem; background: var(--void); padding: 0 3px; border: 1px solid var(--line); }
+  #bossbar { position: absolute; z-index: 11; left: 50%; bottom: max(30px, calc(var(--safe-b) + 22px)); transform: translateX(-50%); width: min(720px, calc(100% - 40px)); pointer-events: none; }
+  #boss-name { font-family: var(--font-caps); letter-spacing: 0.2em; font-size: 1.1rem; margin-bottom: 4px; text-shadow: 0 1px 3px #000; }
+  #bossbar .bar { height: 9px; }
+  #boss-fill { background: linear-gradient(180deg, #d0303a, #6a0e14); }
+  #banner { position: absolute; z-index: 12; left: 50%; top: 20%; transform: translateX(-50%); text-align: center; pointer-events: none; width: min(92%, 720px); }
+  #banner.show { animation: bannerIn 0.6s ease-out; }
+  @keyframes bannerIn { from { opacity: 0; letter-spacing: 0.3em; } to { opacity: 1; } }
+  #banner-title { font-family: var(--font-display); font-weight: 600; font-size: clamp(1.7rem, 4.6vw, 2.8rem); text-shadow: 0 2px 12px #000, 0 0 2px #000; }
+  #banner-sub { font-family: var(--font-display); font-style: italic; font-size: 1.2rem; color: #d6ccba; text-shadow: 0 1px 6px #000; margin-top: 4px; }
   #banner-sub:empty { display: none; }
-  #toast { position: absolute; z-index: 40; left: 50%; bottom: max(24px, calc(var(--safe-b) + 16px)); transform: translateX(-50%); background: var(--ink); color: var(--cream); border: 1px solid var(--gilt); padding: 10px 16px; border-radius: 3px; font-size: 1.05rem; max-width: calc(100% - 32px); text-align: center; pointer-events: none; }
-  #toast.show { animation: toastIn 0.3s ease; }
-  @keyframes toastIn { from { transform: translate(-50%, 12px); opacity: 0; } to { transform: translate(-50%, 0); opacity: 1; } }
+  #titlecard { position: absolute; z-index: 13; inset: 0; display: grid; place-items: center; pointer-events: none; text-align: center; }
+  #titlecard.show > div { animation: card 3.2s ease-in-out forwards; }
+  @keyframes card { 0% { opacity: 0; transform: scale(1.05); } 15% { opacity: 1; transform: none; } 80% { opacity: 1; } 100% { opacity: 0; } }
+  #tc-name { font-family: var(--font-display); font-weight: 600; font-size: clamp(2.2rem, 6vw, 4.4rem); letter-spacing: 0.16em; text-transform: uppercase; text-shadow: 0 4px 20px #000; }
+  #tc-sub { font-family: var(--font-display); font-style: italic; font-size: 1.3rem; color: var(--ash); margin-top: 6px; }
+  .tc-line { height: 1px; width: min(560px, 80vw); margin: 12px auto; background: linear-gradient(90deg, transparent, var(--blood-hi), transparent); }
+  #toast { position: absolute; z-index: 40; left: 50%; bottom: max(80px, calc(var(--safe-b) + 70px)); transform: translateX(-50%); background: rgba(8, 6, 6, 0.92); border: 1px solid var(--line-hi); padding: 10px 18px; font-family: var(--font-display); font-size: 1.15rem; max-width: calc(100% - 32px); text-align: center; pointer-events: none; }
+  #toast.show { animation: rise 0.3s ease-out; }
 
-  #touch { position: absolute; z-index: 9; inset: 0; pointer-events: none; }
-  #dash-btn { position: absolute; right: max(22px, calc(var(--safe-r) + 16px)); bottom: max(26px, calc(var(--safe-b) + 18px)); width: 80px; height: 80px; border-radius: 50%; pointer-events: auto; font-family: var(--font-caps); font-size: 1rem; color: var(--cream); background: var(--prussian); border: 3px solid var(--ink); box-shadow: 0 5px 0 var(--ink); touch-action: none; }
-  #dash-btn:active { transform: translateY(3px); box-shadow: 0 2px 0 var(--ink); }
+  /* Touch controls */
+  #touch { position: absolute; inset: 0; z-index: 9; pointer-events: none; }
+  .tbtn { position: absolute; pointer-events: auto; border-radius: 50%; border: 1px solid var(--line-hi); background: rgba(10, 8, 8, 0.55); color: var(--bone); font-family: var(--font-caps); letter-spacing: 0.08em; display: grid; place-items: center; touch-action: none; font-size: 0.85rem; }
+  .tbtn:active { background: rgba(163, 32, 42, 0.6); }
+  #t-attack { width: 84px; height: 84px; right: max(22px, calc(var(--safe-r) + 16px)); bottom: max(36px, calc(var(--safe-b) + 26px)); font-size: 1rem; border-color: var(--bone); }
+  #t-fire { width: 62px; height: 62px; right: max(118px, calc(var(--safe-r) + 112px)); bottom: max(28px, calc(var(--safe-b) + 20px)); }
+  #t-dodge { width: 62px; height: 62px; right: max(28px, calc(var(--safe-r) + 22px)); bottom: max(134px, calc(var(--safe-b) + 126px)); }
+  #t-special { width: 52px; height: 52px; right: max(118px, calc(var(--safe-r) + 112px)); bottom: max(106px, calc(var(--safe-b) + 98px)); color: var(--galv); }
+  #t-tonic { width: 52px; height: 52px; right: max(184px, calc(var(--safe-r) + 178px)); bottom: max(46px, calc(var(--safe-b) + 40px)); color: #d0303a; }
 
-  /* Level up cards */
-  #levelup .paper { width: min(100%, 860px); text-align: center; }
-  #cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 14px; margin-top: 16px; }
-  .card {
-    position: relative; display: flex; flex-direction: column; align-items: center; gap: 6px; text-align: center; min-width: 0;
-    padding: 16px 12px 14px; background: #f6ecd2; color: var(--ink); border: 2px solid var(--ink); border-radius: 3px; cursor: pointer;
-    box-shadow: 0 5px 0 var(--ink); transition: transform 0.12s, box-shadow 0.12s; animation: deal 0.35s cubic-bezier(0.2, 1.4, 0.4, 1) backwards;
+  @media (max-width: 760px) {
+    body { font-size: 16px; }
+    .side { width: 100%; padding: 28px 22px; justify-content: flex-end; background: linear-gradient(0deg, rgba(6, 4, 4, 0.97) 55%, rgba(6, 4, 4, 0.6) 85%, transparent); }
+    .scrim-left { background: none; }
+    #boon-cards { grid-template-columns: 1fr; gap: 10px; }
+    .boon { min-height: 0; padding: 14px 16px; display: grid; grid-template-columns: auto 1fr; column-gap: 14px; }
+    .boon-art { grid-row: 1 / span 4; width: 46px; height: 46px; }
+    .boon-cost { grid-column: 2; }
+    .boon-name { font-size: 1.35rem; }
+    .hud-tl { width: 46vw; }
+    .hud-tc { top: auto; bottom: max(150px, calc(var(--safe-b) + 140px)); width: 70vw; }
+    #loc { display: none; }
+    #objective { font-size: 1rem; }
+    #hud-boons { display: none; }
+    .hud-tr { gap: 10px; }
+    .stat { font-size: 1rem; }
+    #bossbar { bottom: auto; top: max(84px, calc(var(--safe-t) + 76px)); }
+    .modal > .panel, .letter { padding: 22px 20px; }
+    h2 { font-size: 2rem; }
   }
-  .card:nth-child(2) { animation-delay: 0.05s; }
-  .card:nth-child(3) { animation-delay: 0.1s; }
-  .card:nth-child(4) { animation-delay: 0.15s; }
-  @keyframes deal { from { transform: translateY(30px) rotate(-3deg); opacity: 0; } to { transform: none; opacity: 1; } }
-  .card:hover { transform: translateY(-4px); box-shadow: 0 9px 0 var(--ink); }
-  .card:active { transform: translateY(2px); box-shadow: 0 2px 0 var(--ink); }
-  .card.weapon { border-top: 7px solid var(--gilt); }
-  .card.passive { border-top: 7px solid var(--prussian); }
-  .card.extra { border-top: 7px solid var(--wax); }
-  .card-key { position: absolute; top: 8px; left: 10px; font-family: var(--font-caps); font-size: 0.85rem; color: var(--muted); }
-  .card-icon { width: 64px; height: 64px; display: grid; place-items: center; background: var(--ink); border-radius: 3px; }
-  .card-icon .px { width: 48px; height: 48px; }
-  .card-type { font-family: var(--font-caps); font-size: 0.9rem; color: var(--muted); letter-spacing: 0.08em; }
-  .card-type em { font-style: normal; background: var(--wax); color: var(--cream); border-radius: 2px; padding: 0 5px; margin-left: 2px; }
-  .card-name { font-family: var(--font-display); font-size: 1.25rem; text-wrap: balance; }
-  .card-desc { font-size: 1.02rem; line-height: 1.35; min-height: 2.7em; }
-  #levelup .btn-row { justify-content: center; }
-
-  /* Strongbox */
-  #chest .paper { text-align: center; width: min(100%, 620px); }
-  #reels { display: flex; justify-content: center; flex-wrap: wrap; gap: 12px; margin: 18px 0 6px; }
-  .reel { width: 160px; padding: 12px 8px; display: flex; flex-direction: column; align-items: center; gap: 8px; background: var(--ink); color: var(--cream); border: 2px solid var(--gilt); border-radius: 3px; }
-  .reel.landed { animation: land 0.3s cubic-bezier(0.2, 1.8, 0.4, 1); box-shadow: 0 0 0 3px var(--gilt-hi); }
-  @keyframes land { from { transform: scale(1.18); } to { transform: none; } }
-  .reel-icon { width: 60px; height: 60px; display: grid; place-items: center; }
-  .reel-icon .px { width: 52px; height: 52px; }
-  .reel-name { font-size: 1rem; min-height: 2.5em; display: grid; place-items: center; }
-  #chest-acorns { font-family: var(--font-display); color: var(--wax); font-size: 1.15rem; }
-
-  /* Results */
-  #results .paper { text-align: center; }
-  #res-sub { margin: 8px auto 0; max-width: 48ch; line-height: 1.45; font-style: italic; }
-  #res-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin: 18px 0 12px; }
-  .stat { position: relative; background: #f6ecd2; border: 2px solid var(--ink); border-radius: 3px; padding: 8px 6px; display: flex; flex-direction: column; gap: 2px; min-width: 0; }
-  .stat span { font-family: var(--font-caps); font-size: 0.85rem; color: var(--muted); }
-  .stat b { font-family: var(--font-display); font-weight: 400; font-size: 1.35rem; font-variant-numeric: tabular-nums; }
-  .stat em { position: absolute; top: -10px; right: -6px; font-style: normal; font-family: var(--font-caps); font-size: 0.8rem; background: var(--gilt); color: var(--ink); border: 1.5px solid var(--ink); border-radius: 2px; padding: 0 5px; transform: rotate(6deg); }
-  #res-acorns { font-family: var(--font-display); color: var(--ink); font-size: 1.2rem; display: inline-flex; align-items: center; gap: 6px; flex-wrap: wrap; justify-content: center; }
-  #res-acorns .px { width: 26px; height: 26px; }
-  #res-acorns small { font-family: var(--font-body); color: var(--muted); font-size: 0.95rem; }
-  #pause .paper { width: min(100%, 380px); text-align: center; }
-  .btn-col { display: flex; flex-direction: column; gap: 12px; margin-top: 16px; }
-
-  /* ---------- small screens ---------- */
-  @media (max-width: 700px) {
-    body { font-size: 15px; }
-    .hud-row { grid-template-columns: 1fr auto; grid-template-areas: "center center" "left right"; row-gap: 6px; }
-    .hud-center { grid-area: center; }
-    .hud-left { grid-area: left; }
-    .hud-right { grid-area: right; flex-direction: column; align-items: flex-end; }
-    #timer { font-size: 1.45rem; }
-    #objective { font-size: 0.9rem; max-width: 92vw; }
-    .hpbar { width: min(170px, 100%); height: 20px; }
-    .slot { width: 24px; height: 24px; }
-    .slot .px { width: 16px; height: 16px; }
-    .slot b { font-size: 0.6rem; right: -3px; bottom: -4px; }
-    #slots { max-width: 170px; gap: 4px; }
-    .chip { font-size: 0.8rem; padding: 1px 6px; }
-    .chip .px { width: 14px; height: 14px; }
-    .bloombar { width: 36px; }
-    .icon-btn { width: 34px; height: 34px; }
-    #bossbar { top: calc(var(--safe-t) + 150px); }
-    #banner { top: 40%; }
-    #banner-title { font-size: 1.5rem; }
-    #banner-sub { font-size: 0.98rem; }
-    #combo { top: 54%; }
-    #combo b { font-size: 1.9rem; }
-    #combo[data-tier="2"] b, #combo[data-tier="3"] b { font-size: 2.2rem; }
-    #dash-btn { width: 70px; height: 70px; }
-    .playbill { left: 12px; right: 12px; width: auto; bottom: max(14px, calc(var(--safe-b) + 10px)); padding: 16px 16px 14px; gap: 8px; }
-    .page, .page.right { top: auto; left: 12px; right: 12px; width: auto; max-height: 72%; padding: 20px 18px; bottom: max(12px, var(--safe-b)); }
-    #heroes .page { max-height: 64%; }
-    #hero-list { gap: 8px; }
-    .hero-card { padding: 8px; gap: 4px; }
-    .hero-stats { display: none; }
-    #hero-blurb { min-height: 0; font-size: 0.98rem; }
-    #heroes .spacer { display: none; }
-    .page > .btn-row:last-child { bottom: -20px; }
-    #shop-list, #remedy-list, #keep-list { grid-template-columns: 1fr; }
-    #cards { grid-template-columns: 1fr; gap: 10px; }
-    .card { display: grid; grid-template-columns: auto 1fr; grid-template-areas: "icon type" "icon name" "icon desc" "icon pips"; text-align: left; align-items: center; column-gap: 12px; row-gap: 2px; justify-items: start; padding: 12px; }
-    .card-icon { grid-area: icon; width: 56px; height: 56px; }
-    .card-type { grid-area: type; }
-    .card-name { grid-area: name; }
-    .card-desc { grid-area: desc; min-height: 0; font-size: 0.95rem; }
-    .pips { grid-area: pips; }
-    .card-key { display: none; }
-    #res-stats { grid-template-columns: repeat(2, 1fr); }
-    .modal > .paper { padding: 18px 16px; }
-    h2 { font-size: 1.6rem; }
-    .prose { font-size: 1.02rem; }
-  }
+  body.touch .keys { display: none; }
   @media (prefers-reduced-motion: reduce) {
     *, *::before, *::after { animation-duration: 0.01ms !important; animation-delay: 0s !important; transition-duration: 0.01ms !important; }
+    .grain { display: none; }
   }
 </style>
 
 <div id="app">
-  <canvas id="scene" aria-label="Pip's Expectations game view"></canvas>
+  <canvas id="scene" aria-label="Spark of Being game view"></canvas>
   <canvas id="overlay"></canvas>
+  <div class="shade"></div>
   <div id="vignette"></div>
   <div id="flash"></div>
+  <div id="lightning"></div>
 
   <div id="hud" hidden>
-    <div class="xpbar"><div id="xp-fill"></div><span id="lvl">LV 1</span></div>
-    <div class="hud-row">
-      <div class="hud-left">
-        <div class="hpbar"><div id="hp-fill"></div><span id="hp-text">100 / 100</span></div>
-        <div id="slots"></div>
-      </div>
-      <div class="hud-center">
-        <div id="timer">0:00</div>
-        <div id="objective"></div>
-      </div>
-      <div class="hud-right">
-        <span class="story-chips" id="story-chips" hidden>
-          <span class="chip" id="life-chip" title="Pip's life expectancy"><span data-icon="hourglass"></span><b id="life-years">50 yrs</b></span>
-          <span class="chip" title="Chances left this chapter"><span id="chances">♥♥♥</span></span>
-        </span>
-        <span class="chip" title="Miasma scattered"><span data-icon="gloop"></span><b id="kills">0</b></span>
-        <span class="chip" title="Shillings this chapter"><span data-icon="coin"></span><b id="acorns-run">0</b></span>
-        <span class="chip" title="Land coloured again"><span data-icon="bloom"></span><span class="bloombar"><i id="bloom-fill"></i></span><b id="bloom-pct">0%</b></span>
-        <span class="chip" id="fever-chip" hidden>Fever! Find Joe</span>
-        <span class="chip" id="cheat-chip" hidden>Secret code on</span>
-        <button id="btn-pause" class="icon-btn" aria-label="Pause">II</button>
-      </div>
+    <div class="hud-tl">
+      <div class="bar"><i id="hp-fill"></i><span id="hp-text">100 / 100</span></div>
+      <div class="hud-row"><div class="bar grow" id="gal" style="flex:1"><i id="gal-fill" style="width:0"></i></div><span class="gal-key">Q</span></div>
+      <div class="hud-row"><div id="tonics"></div><div id="dodges"></div></div>
     </div>
-    <div id="combo" hidden><b id="combo-n">0</b><span>COMBO</span></div>
-    <div id="hint" hidden>Move with WASD, arrows or drag · Space to dash</div>
+    <div class="hud-tc"><div id="loc"></div><div id="objective"></div></div>
+    <div class="hud-tr">
+      <span id="cheat-chip" hidden>Secret word</span>
+      <span class="stat" id="years-chip" title="Years of Victor's life remaining"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M7 3h10M7 21h10M8 3c0 5 8 5 8 9s-8 4-8 9M16 3c0 5-8 5-8 9s8 4 8 9"/></svg><b id="years-val">36</b><span class="muted">yrs</span></span>
+      <span class="stat" title="Guineas"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="12" r="8"/><path d="M12 7v10M9 9.5h4.5a1.5 1.5 0 0 1 0 3h-3a1.5 1.5 0 0 0 0 3H15"/></svg><b id="guineas-val">0</b></span>
+      <button class="icon-btn" id="btn-pause" aria-label="Pause">II</button>
+    </div>
+    <div id="hud-boons"></div>
   </div>
 
-  <div id="bossbar" hidden>
-    <div id="boss-name">Boss</div>
-    <div class="boss-track"><div id="boss-fill"></div></div>
+  <div id="bossbar" hidden><div id="boss-name"></div><div class="bar"><i id="boss-fill"></i></div></div>
+  <div id="banner" hidden><div id="banner-title"></div><div id="banner-sub"></div></div>
+  <div id="titlecard" hidden><div><div class="tc-line"></div><div id="tc-name"></div><div id="tc-sub"></div><div class="tc-line"></div></div></div>
+
+  <div id="touch" hidden>
+    <button class="tbtn" id="t-attack" aria-label="Sabre">Sabre</button>
+    <button class="tbtn" id="t-fire" aria-label="Pistol">Pistol</button>
+    <button class="tbtn" id="t-dodge" aria-label="Dodge">Dodge</button>
+    <button class="tbtn" id="t-special" aria-label="Galvanic discharge">Q</button>
+    <button class="tbtn" id="t-tonic" aria-label="Tonic">Tonic</button>
   </div>
 
-  <div id="banner" hidden>
-    <div id="banner-title"></div>
-    <div id="banner-sub"></div>
-  </div>
+  <section class="screen" id="loading">Gathering the storm…</section>
 
-  <div id="touch" hidden><button id="dash-btn" aria-label="Dash">Dash</button></div>
+  <section class="screen scrim-left" id="title" hidden>
+    <div class="side">
+      <h1 class="logo"><em>Frankenstein · 1816</em>Spark<br>of Being</h1>
+      <div class="sub">A gothic tale after Mary Shelley</div>
+      <div class="menu">
+        <button class="btn primary" id="btn-continue" data-autofocus>Continue the tale</button>
+        <button class="btn" id="btn-new">Begin the tale</button>
+        <button class="btn" id="btn-lab">The Laboratory</button>
+        <button class="btn" id="btn-journal">Journal</button>
+        <button class="btn" id="btn-controls">Controls</button>
+        <button class="btn" id="btn-settings">Settings</button>
+      </div>
+      <div id="title-meta"></div>
+      <div class="keys"><kbd>WASD</kbd> move · <kbd>Mouse</kbd> aim · <kbd>Left</kbd> sabre · <kbd>Right</kbd> pistol · <kbd>Space</kbd> dodge · <kbd>Q</kbd> discharge · <kbd>E</kbd> tonic</div>
+    </div>
+  </section>
 
-  <section class="screen" id="loading"><p>Setting out the toy theatre…</p></section>
-
-  <section class="screen passthrough" id="menu" hidden>
-    <div class="paper playbill">
-      <div class="vol">A Tale of 1812</div>
-      <h1 class="logo"><span class="pips-name">Pip's</span><span class="big">Expectations</span></h1>
-      <div class="sub">After Charles Dickens's <i>Great Expectations</i></div>
+  <section class="screen modal scrim" id="prologue" hidden>
+    <div class="letter">
+      <div class="eyebrow" id="pro-head"></div>
+      <div class="date" id="pro-date"></div>
       <hr class="rule">
-      <div class="tag">A penny plain, twopence coloured</div>
-      <div class="menu-actions">
-        <button class="btn big" id="btn-story" data-autofocus>Begin the tale</button>
-        <button class="btn blue" id="btn-free">The Long Night</button>
-        <button class="btn alt" id="btn-shop">High Street</button>
-        <button class="btn alt" id="btn-keepsakes">Keepsakes</button>
-        <button class="btn alt" id="btn-settings">Settings</button>
-      </div>
-      <div class="menu-meta"><span class="purse" id="menu-acorns"></span><span id="menu-best" class="muted"></span></div>
-      <div class="keys" id="keys"><kbd>WASD</kbd> or drag to move · <kbd>Space</kbd> to dash · attacks fire on their own</div>
+      <div class="prose" id="pro-body"></div>
+      <div class="sign" id="pro-sign"></div>
+      <div class="btn-row"><button class="btn primary" id="btn-pro-next" data-autofocus>Hear his story</button></div>
     </div>
   </section>
 
-  <section class="screen passthrough" id="journey" hidden>
-    <div class="paper page">
-      <div class="row-between"><div class="eyebrow">Volume the First · Contents</div><span class="purse" id="journey-acorns"></span></div>
-      <h2>Pip's Expectations</h2>
+  <section class="screen scrim-left" id="intro" hidden>
+    <div class="side">
+      <div class="act-num" id="intro-num">Act I</div>
+      <h2 id="intro-title"></h2>
+      <div id="intro-date"></div>
+      <div class="quote" id="intro-quote"></div>
+      <div class="prose" id="intro-body"></div>
+      <div class="years" id="intro-years"></div>
+      <div class="btn-row">
+        <button class="btn primary" id="btn-begin" data-autofocus>Begin</button>
+        <button class="btn" id="btn-intro-lab">The Laboratory</button>
+        <button class="btn" id="btn-intro-back" data-back>Title</button>
+      </div>
+    </div>
+  </section>
+
+  <section class="screen scrim" id="boons" hidden>
+    <div class="boon-wrap">
+      <div class="eyebrow">Insight</div>
+      <h2>Choose what Victor learns</h2>
+      <div id="boon-cards"></div>
+    </div>
+  </section>
+
+  <section class="screen modal scrim" id="letter" hidden>
+    <div class="letter">
+      <div class="eyebrow">A letter, forwarded from Geneva</div>
+      <div class="date" id="letter-from"></div>
       <hr class="rule">
-      <div class="years" id="journey-years"></div>
-      <ol id="journey-list"></ol>
-      <p id="journey-note"></p>
-      <div class="btn-row">
-        <button class="btn blue small" id="btn-journey-dice">The Blue Boar</button>
-        <button class="btn alt small" id="btn-journey-shop">High Street</button>
-        <button class="btn alt small" id="btn-journey-keep">Keepsakes</button>
-        <button class="btn alt small" id="btn-epilogue" hidden>Epilogue</button>
-      </div>
-      <div class="btn-row">
-        <button class="btn alt small" id="btn-journey-back" data-back>Title</button>
-        <span class="grow"></span>
-        <button class="btn alt small" id="btn-newtale">Begin a new tale</button>
-      </div>
+      <div class="prose"><p id="letter-text"></p></div>
+      <div class="btn-row"><button class="btn primary" id="btn-letter" data-autofocus>Fold it away (+1 year)</button></div>
     </div>
   </section>
 
-  <section class="screen passthrough" id="chapter" hidden>
-    <div class="paper page">
-      <div class="chapter-num" id="chapter-eyebrow">Chapter I</div>
-      <h2 id="chapter-title">The Marshes</h2>
-      <div id="chapter-date"></div>
-      <hr class="rule">
-      <div id="chapter-quote"></div>
-      <div class="prose" id="chapter-body"></div>
-      <div class="eyebrow" style="margin-top:16px">In this chapter</div>
-      <ul id="chapter-goals"></ul>
-      <div class="btn-row">
-        <button class="btn alt" id="btn-chapter-back" data-back>Contents</button>
-        <button class="btn big grow" id="btn-chapter-go" data-autofocus>Choose a companion</button>
-      </div>
-    </div>
-  </section>
-
-  <section class="screen passthrough" id="heroes" hidden>
-    <div class="paper page right side">
-      <div class="row-between"><h2 id="heroes-title" style="font-size:1.45rem">Choose a companion</h2><span class="purse" id="hero-acorns"></span></div>
-      <div id="hero-list"></div>
-      <p id="hero-blurb"></p>
-      <div>
-        <div class="eyebrow">Difficulty</div>
-        <div class="seg-row" id="diff-row"></div>
-        <p id="diff-desc"></p>
-      </div>
-      <div class="spacer"></div>
-      <div class="btn-row" style="margin-top:0">
-        <button class="btn alt" id="btn-heroes-back" data-back>Back</button>
-        <button class="btn big green grow" id="btn-start" data-autofocus>Begin</button>
-      </div>
-    </div>
-  </section>
-
-  <section class="screen modal" id="shop" hidden>
-    <div class="paper" style="width:min(100%,860px)">
-      <div class="row-between"><div><div class="eyebrow">The High Street</div><h2>Shops of the Town</h2></div><span class="purse" id="shop-acorns"></span></div>
-      <div class="shop-head">The Outfitter <small>Lasting goods for every chapter and every night</small></div>
-      <div id="shop-list"></div>
-      <div class="shop-head">The Apothecary <small>Remedies that change how long Pip may live</small></div>
-      <p id="apothecary-note"></p>
-      <div id="remedy-list"></div>
-      <div class="btn-row"><button class="btn" id="btn-shop-back" data-back data-autofocus>Done</button></div>
-    </div>
-  </section>
-
-  <section class="screen modal" id="keepsakes" hidden>
-    <div class="paper">
-      <div class="row-between"><div><div class="eyebrow">A Cabinet of Curiosities</div><h2>Keepsakes</h2></div><span id="keep-count" class="muted"></span></div>
-      <ul id="keep-list"></ul>
-      <div class="btn-row"><button class="btn" id="btn-keep-back" data-back data-autofocus>Close the cabinet</button></div>
-    </div>
-  </section>
-
-  <section class="screen modal" id="settings" hidden>
-    <div class="paper" style="width:min(100%,520px)">
-      <h2>Settings</h2>
-      <div id="settings-list"></div>
-      <div class="row-between"><div class="eyebrow">Secret words</div><span id="codes-count" class="muted"></span></div>
-      <div class="code-entry">
-        <input id="code-input" type="text" autocomplete="off" spellcheck="false" placeholder="Whisper a secret word" aria-label="Secret word">
-        <button class="btn blue" id="btn-code">Try it</button>
-      </div>
-      <p id="code-msg"></p>
-      <ul id="codes-list"></ul>
-      <div class="btn-row">
-        <button class="btn" id="btn-settings-back" data-back data-autofocus>Done</button>
-        <button class="btn alt" id="btn-reset">Erase all progress</button>
-      </div>
-    </div>
-  </section>
-
-  <section class="screen modal" id="dice" hidden>
-    <div class="paper">
-      <div class="row-between"><div class="eyebrow">The Blue Boar Inn</div><span class="purse" id="dice-acorns"></span></div>
-      <h2>A Game of Hazard</h2>
+  <section class="screen modal scrim" id="dice" hidden>
+    <div class="panel">
+      <div class="eyebrow">A tavern table · The game of Hazard</div>
+      <h2>Wager Your Fortune</h2>
+      <div id="dice-purse"></div>
       <div id="dice-faces"></div>
       <p id="dice-msg"></p>
       <div id="dice-point"></div>
-      <div class="seg-row" id="dice-wagers"></div>
-      <div class="btn-row center"><button class="btn big" id="btn-throw" data-autofocus>Throw</button></div>
+      <div class="seg-row" id="dice-stakes"></div>
+      <div class="btn-row" style="justify-content:center"><button class="btn primary" id="btn-throw" data-autofocus>Throw</button><button class="btn" id="btn-dice-leave" data-back>Leave the table</button></div>
       <p id="dice-rules"></p>
-      <p class="odds">The odds: you win about 49 throws in every 100. The house always keeps a little.</p>
-      <div class="btn-row center"><button class="btn alt" id="btn-dice-back" data-back>Leave the inn</button></div>
+      <p class="odds">The odds: you win about 49 throws in every 100.</p>
     </div>
   </section>
 
-  <section class="screen passthrough" id="outro" hidden>
-    <div class="paper page">
-      <div class="chapter-num" id="outro-eyebrow">Chapter I is finished</div>
-      <h2 id="outro-title" style="text-align:center"></h2>
+  <section class="screen" id="dead" hidden>
+    <div>
+      <div class="dead-title">Victor Falls</div>
+      <div id="dead-sub"></div>
+      <div class="years" id="dead-years"></div>
+      <div id="fate-die"></div>
+      <p id="fate-msg"></p>
+      <div class="btn-row">
+        <button class="btn primary" id="btn-retry" data-autofocus>Rise again at the act's start</button>
+        <button class="btn" id="btn-fate">Tempt fate</button>
+      </div>
+    </div>
+  </section>
+
+  <section class="screen scrim-left" id="outro" hidden>
+    <div class="side">
+      <div class="act-num" id="outro-num"></div>
+      <h2 id="outro-title"></h2>
       <hr class="rule">
       <div class="prose" id="outro-body"></div>
       <p id="outro-prompt"></p>
-      <div id="outro-choices"></div>
+      <div class="choices" id="outro-choices"></div>
     </div>
   </section>
 
-  <section class="screen passthrough" id="ledger" hidden>
-    <div class="paper page ledger-paper">
-      <div class="eyebrow" id="ledger-eyebrow">The ledger</div>
-      <h2>Pip's Account of Years</h2>
-      <p id="ledger-result"></p>
-      <ul class="ledger-rows" id="ledger-rows"></ul>
-      <ul id="ledger-extras"></ul>
-      <div class="total" id="ledger-total"></div>
-      <div class="btn-row"><button class="btn big grow" id="btn-ledger" data-autofocus>Turn the page</button></div>
+  <section class="screen scrim-left" id="outroResult" hidden>
+    <div class="side">
+      <div class="act-num">What follows</div>
+      <p id="or-text"></p>
+      <ul id="or-gain"></ul>
+      <div class="years" id="or-years"></div>
+      <div class="btn-row"><button class="btn primary" id="btn-or-next" data-autofocus>Continue the tale</button></div>
     </div>
   </section>
 
-  <section class="screen passthrough" id="epilogue" hidden>
-    <div class="paper page">
-      <div class="chapter-num">Epilogue</div>
-      <h2 style="text-align:center" id="epi-date"></h2>
+  <section class="screen scrim-left" id="final" hidden>
+    <div class="side">
+      <div class="act-num">The edge of the world</div>
+      <h2>The Last Choice</h2>
+      <p id="final-prompt"></p>
+      <div class="choices" id="final-choices"></div>
+    </div>
+  </section>
+
+  <section class="screen scrim-left" id="ending" hidden>
+    <div class="side">
+      <div class="act-num">Here ends the tale</div>
+      <div id="end-stone"></div>
+      <h3 id="end-title"></h3>
+      <p id="end-text"></p>
+      <div class="quote" id="end-quote"></div>
+      <div class="eyebrow">The account of his years</div>
+      <ul class="ledger" id="end-log"></ul>
+      <div class="years" id="end-sum"></div>
+      <div class="btn-row"><button class="btn primary" id="btn-end-new" data-autofocus>Begin a new tale</button><button class="btn" id="btn-end-title">Title</button></div>
+    </div>
+  </section>
+
+  <section class="screen modal scrim" id="lab" hidden>
+    <div class="panel">
+      <div class="row-between"><div><div class="eyebrow">Ingolstadt</div><h2>The Laboratory</h2></div><span class="years" id="lab-purse"></span></div>
+      <p class="muted" style="margin-top:6px">Guineas buy lasting improvements that carry into every tale.</p>
+      <div id="lab-list"></div>
+      <div class="btn-row"><button class="btn primary" id="btn-lab-back" data-back data-autofocus>Done</button></div>
+    </div>
+  </section>
+
+  <section class="screen modal scrim" id="journal" hidden>
+    <div class="panel">
+      <div class="eyebrow">Victor's journal</div>
+      <h2>Letters from Home</h2>
+      <p class="muted" id="journal-endings" style="margin-top:6px"></p>
+      <ul id="journal-letters"></ul>
+      <div id="journal-acts" hidden></div>
+      <div class="btn-row"><button class="btn primary" id="btn-journal-back" data-back data-autofocus>Close</button></div>
+    </div>
+  </section>
+
+  <section class="screen modal scrim" id="settings" hidden>
+    <div class="panel" style="width:min(100%,560px)">
+      <h2>Settings</h2>
+      <div id="settings-list"></div>
+      <div class="eyebrow">Difficulty</div>
+      <div class="seg-row" id="diff-row" style="margin-top:8px"></div>
+      <p class="muted" id="diff-desc" style="margin-top:6px"></p>
       <hr class="rule">
-      <div class="prose" id="epi-body"></div>
-      <div id="epi-stone"></div>
-      <h3 id="epi-tier"></h3>
-      <p id="epi-tier-text"></p>
-      <p id="epi-facts"></p>
-      <div class="eyebrow">The whole account</div>
-      <ul class="ledger-rows" id="epi-ledger"></ul>
-      <p id="epi-keepsakes"></p>
-      <div class="btn-row">
-        <button class="btn big grow" id="btn-epi-new" data-autofocus>Begin a new tale</button>
-        <button class="btn alt" id="btn-epi-menu">Title</button>
+      <div class="row-between"><div class="eyebrow">Secret words</div><span class="muted" id="codes-count"></span></div>
+      <div class="code-entry"><input id="code-input" type="text" autocomplete="off" spellcheck="false" placeholder="Speak a secret word" aria-label="Secret word"><button class="btn" id="btn-code">Speak</button></div>
+      <p id="code-msg"></p>
+      <ul id="codes-list"></ul>
+      <div class="btn-row"><button class="btn primary" id="btn-settings-back" data-back data-autofocus>Done</button><button class="btn" id="btn-reset">Erase all progress</button></div>
+    </div>
+  </section>
+
+  <section class="screen modal scrim" id="controls" hidden>
+    <div class="panel">
+      <h2>Controls</h2>
+      <div class="controls-grid">
+        <kbd>WASD / Arrows</kbd><span>Move</span>
+        <kbd>Mouse</kbd><span>Aim. Victor always faces your cursor.</span>
+        <kbd>Left click / J</kbd><span>Sabre. Click in rhythm for a three-blow combo; the third blow is heavy.</span>
+        <kbd>Right click / K</kbd><span>Flintlock pistol. One devastating shot, then a reload (R to reload early).</span>
+        <kbd>Space / Shift</kbd><span>Dodge roll. You cannot be hurt while rolling. Two charges.</span>
+        <kbd>Q</kbd><span>Galvanic discharge when the blue bar is full. Lightning leaps between foes and stuns them.</span>
+        <kbd>E</kbd><span>Drink a tonic to heal. Also plays the gaming table.</span>
+        <kbd>Esc / P</kbd><span>Pause</span>
+        <kbd>Gamepad</kbd><span>Left stick move, right stick aim, X sabre, RT pistol, A dodge, LB discharge, Y tonic</span>
+        <kbd>Touch</kbd><span>Drag on the left to move. Buttons on the right; your aim locks onto the nearest foe.</span>
       </div>
+      <p class="muted" style="margin-top:14px">Every foe flashes red and marks the ground before it strikes. Watch the marks, roll through the blow, and punish the recovery.</p>
+      <div class="btn-row"><button class="btn primary" id="btn-controls-back" data-back data-autofocus>Done</button></div>
     </div>
   </section>
 
-  <section class="screen modal" id="levelup" hidden>
-    <div class="paper">
-      <div class="eyebrow">Pick one</div>
-      <h2 id="lvl-title">Level up!</h2>
-      <div id="cards"></div>
-      <div class="btn-row"><button class="btn alt small" id="btn-reroll">Reroll</button></div>
-    </div>
-  </section>
-
-  <section class="screen modal" id="chest" hidden>
-    <div class="paper">
-      <h2 id="chest-title">A strongbox!</h2>
-      <div id="reels"></div>
-      <div id="chest-acorns"></div>
-      <div class="btn-row center"><button class="btn big" id="btn-chest">Carry on</button></div>
-    </div>
-  </section>
-
-  <section class="screen modal" id="pause" hidden>
-    <div class="paper">
+  <section class="screen modal scrim" id="pause" hidden>
+    <div class="panel" style="width:min(100%,380px);text-align:center">
       <h2>Paused</h2>
       <div class="btn-col">
-        <button class="btn big green" id="btn-resume" data-autofocus>Resume</button>
-        <button class="btn alt" id="btn-pause-settings">Settings</button>
-        <button class="btn alt" id="btn-quit">Leave this chapter</button>
-      </div>
-    </div>
-  </section>
-
-  <section class="screen modal" id="results" hidden>
-    <div class="paper">
-      <div class="eyebrow" id="res-eyebrow">The Long Night</div>
-      <h2 id="res-title">Dawn at last!</h2>
-      <p id="res-sub"></p>
-      <div id="res-stats"></div>
-      <div id="res-acorns"></div>
-      <p id="res-unlock" hidden></p>
-      <div class="btn-row center">
-        <button class="btn big green" id="btn-again" data-autofocus>Play again</button>
-        <button class="btn alt" id="btn-res-shop">High Street</button>
-        <button class="btn alt" id="btn-res-menu">Title</button>
+        <button class="btn primary" id="btn-resume" data-autofocus>Resume</button>
+        <button class="btn" id="btn-pause-controls">Controls</button>
+        <button class="btn" id="btn-pause-settings">Settings</button>
+        <button class="btn" id="btn-abandon">Return to the title</button>
       </div>
     </div>
   </section>
 
   <div id="toast" hidden></div>
+  <div id="fade"></div>
+  <div class="grain"></div>
 </div>
 
 <script>
-  // If the 3D engine cannot load, say so instead of hanging on the loading screen.
   setTimeout(function () {
-    if (!window.__sprout) {
-      var el = document.querySelector('#loading p');
-      if (el) el.textContent = 'The 3D engine could not load. Check your connection and reload the page.';
-    }
+    if (!window.__spark) { var el = document.getElementById('loading'); if (el) el.textContent = 'The 3D engine could not load. Check your connection and reload.'; }
   }, 12000);
 </script>
 <script type="importmap">{ "imports": { "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.min.js" } }</script>

@@ -1,4 +1,4 @@
-// Sprout Siege: voxel model builder, island mesher and all models.
+// Spark of Being: voxel builder, gothic characters, props and room construction.
 import * as THREE from 'three';
 
 const _c = new THREE.Color();
@@ -27,25 +27,15 @@ export function valueNoise(x, z, s = 1) {
   return a + (b - a) * u + (c - a) * v + (a - b - c + d) * u * v;
 }
 
-// Per-face baked shading gives crisp voxel edges regardless of lighting.
-const SHADE = { px: 0.84, nx: 0.8, py: 1.0, ny: 0.6, pz: 0.93, nz: 0.74 };
+const SHADE = { px: 0.82, nx: 0.78, py: 1.0, ny: 0.55, pz: 0.92, nz: 0.7 };
 
 export class VoxBuilder {
-  constructor() {
-    this.pos = [];
-    this.nor = [];
-    this.col = [];
-    this.ind = [];
-    this.v = 0;
-  }
-
+  constructor() { this.pos = []; this.nor = []; this.col = []; this.ind = []; this.v = 0; }
   quad(a, b, c, d, n, r, g, bl, shade) {
-    // Fix winding so the face points along n.
     const e1x = b[0] - a[0], e1y = b[1] - a[1], e1z = b[2] - a[2];
     const e2x = c[0] - a[0], e2y = c[1] - a[1], e2z = c[2] - a[2];
     const cx = e1y * e2z - e1z * e2y, cy = e1z * e2x - e1x * e2z, cz = e1x * e2y - e1y * e2x;
-    const flip = cx * n[0] + cy * n[1] + cz * n[2] < 0;
-    const verts = flip ? [a, d, c, b] : [a, b, c, d];
+    const verts = cx * n[0] + cy * n[1] + cz * n[2] < 0 ? [a, d, c, b] : [a, b, c, d];
     for (const p of verts) {
       this.pos.push(p[0], p[1], p[2]);
       this.nor.push(n[0], n[1], n[2]);
@@ -55,37 +45,26 @@ export class VoxBuilder {
     this.ind.push(v, v + 1, v + 2, v, v + 2, v + 3);
     this.v += 4;
   }
-
-  // Axis-aligned box from min corner (x, y, z) with size (w, h, d).
-  box(x, y, z, w, h, d, hex, mul = 1) {
+  box(x, y, z, w, h, d, hex, mul = 1, skipBottom = false) {
     _c.set(hex);
     const r = _c.r * mul, g = _c.g * mul, b = _c.b * mul;
     const x1 = x + w, y1 = y + h, z1 = z + d;
     this.quad([x1, y, z], [x1, y1, z], [x1, y1, z1], [x1, y, z1], [1, 0, 0], r, g, b, SHADE.px);
     this.quad([x, y, z], [x, y, z1], [x, y1, z1], [x, y1, z], [-1, 0, 0], r, g, b, SHADE.nx);
     this.quad([x, y1, z], [x, y1, z1], [x1, y1, z1], [x1, y1, z], [0, 1, 0], r, g, b, SHADE.py);
-    this.quad([x, y, z], [x1, y, z], [x1, y, z1], [x, y, z1], [0, -1, 0], r, g, b, SHADE.ny);
+    if (!skipBottom) this.quad([x, y, z], [x1, y, z], [x1, y, z1], [x, y, z1], [0, -1, 0], r, g, b, SHADE.ny);
     this.quad([x, y, z1], [x1, y, z1], [x1, y1, z1], [x, y1, z1], [0, 0, 1], r, g, b, SHADE.pz);
     this.quad([x, y, z], [x, y1, z], [x1, y1, z], [x1, y, z], [0, 0, -1], r, g, b, SHADE.nz);
     return this;
   }
-
-  // Build geometry; scale converts voxel units to world units.
-  build(scale = 1, recenter = true) {
+  top(x, z, w, d, y, hex, mul = 1) {
+    _c.set(hex);
+    this.quad([x, y, z], [x, y, z + d], [x + w, y, z + d], [x + w, y, z], [0, 1, 0], _c.r * mul, _c.g * mul, _c.b * mul, 1);
+    return this;
+  }
+  build(scale = 1) {
     const pos = new Float32Array(this.pos);
-    if (recenter) {
-      let minX = Infinity, maxX = -Infinity, minY = Infinity, minZ = Infinity, maxZ = -Infinity;
-      for (let i = 0; i < pos.length; i += 3) {
-        minX = Math.min(minX, pos[i]); maxX = Math.max(maxX, pos[i]);
-        minY = Math.min(minY, pos[i + 1]);
-        minZ = Math.min(minZ, pos[i + 2]); maxZ = Math.max(maxZ, pos[i + 2]);
-      }
-      const ox = (minX + maxX) / 2, oz = (minZ + maxZ) / 2;
-      for (let i = 0; i < pos.length; i += 3) {
-        pos[i] -= ox; pos[i + 1] -= minY; pos[i + 2] -= oz;
-      }
-    }
-    for (let i = 0; i < pos.length; i++) pos[i] *= scale;
+    if (scale !== 1) for (let i = 0; i < pos.length; i++) pos[i] *= scale;
     const g = new THREE.BufferGeometry();
     g.setAttribute('position', new THREE.BufferAttribute(pos, 3));
     g.setAttribute('normal', new THREE.BufferAttribute(new Float32Array(this.nor), 3));
@@ -95,744 +74,437 @@ export class VoxBuilder {
     return g;
   }
 }
-
 const V = () => new VoxBuilder();
+export function cubeGeometry() { return V().box(-0.5, -0.5, -0.5, 1, 1, 1, '#ffffff').build(1); }
 
-// ---------------------------------------------------------------- characters
-// Early-1800s looks. Each character is a set of limb geometries with pivots so the walk cycle can swing them.
+// ---------------------------------------------------------------- characters (1 voxel unit = 0.1 world units)
 const LOOKS = {
-  pip: { skin: '#ffcf9e', hair: '#6b3e1f', shirt: '#f2efe6', coat: '#2f4f8f', coat2: '#22396a', legs: '#8a6a45', boots: '#3a2a1c', hat: 'cap', hatCol: '#4a4a58', scarf: '#b03a2e' },
-  joe: { big: true, skin: '#f0bf8f', hair: '#8a5a2a', shirt: '#ece4d0', coat: '#ece4d0', coat2: '#d8cfb8', apron: '#6b4a2a', legs: '#4a4a5a', boots: '#2a2018', whiskers: true },
-  herbert: { skin: '#ffd8b0', hair: '#c8a060', shirt: '#ffffff', coat: '#3f6f4f', coat2: '#2f5a3c', legs: '#d8cfb0', boots: '#1a1a1a', hat: 'top', hatCol: '#1e1e24', cravat: true },
-  biddy: { skin: '#ffcf9e', hair: '#5a3a1a', shirt: '#f2efe6', dress: '#7a5aa0', dress2: '#5f4482', apron: '#f2efe6', legs: '#5f4482', boots: '#3a2a1c', hat: 'bonnet', hatCol: '#ecdcae', ribbon: '#c0405a' },
-  convict: { skin: '#e8b890', hair: '#3a3a3a', shirt: '#8d8f96', coat: '#7d7f86', coat2: '#6a6c73', legs: '#7d7f86', boots: '#3a3030', hat: 'rag', hatCol: '#9a8f7a', iron: true, stubble: true },
-  provis: { skin: '#d8a070', hair: '#a0a0a0', shirt: '#e8e0cc', coat: '#3a3550', coat2: '#2a2640', legs: '#5a5048', boots: '#2a2018', hat: 'top', hatCol: '#3a3030', stubble: true },
+  victor: {
+    legH: 8, legW: 2.1, legX: 1.2, torsoH: 6.6, torsoW: 5.4, torsoD: 3.2, headW: 3.3, headH: 3.5, armW: 1.6, armLen: 6.6,
+    skin: '#e3c09c', hair: '#24170f', torso: '#1d2738', sleeve: '#1d2738', legs: '#2b2722', boots: '#120f0d',
+    coatSkirt: { len: 4.2, color: '#18202f' }, cape: '#26324a', shirtFront: '#e9e4d6', cravat: '#f2efe6', buttons: '#b8954a',
+    hat: 'top', hatColor: '#121216', hatBand: '#4a2a1a', eyes: '#1a1410', brows: '#24170f',
+  },
+  shambler: {
+    legH: 7.6, legW: 2.1, legX: 1.2, torsoH: 6.4, torsoW: 5.4, torsoD: 3.2, headW: 3.4, headH: 3.6, armW: 1.6, armLen: 7,
+    skin: '#8d987d', skin2: '#78836a', hair: '#3a382e', torso: '#b8b09a', sleeve: '#8d987d', legs: '#46423a', boots: '#8d987d',
+    rags: '#9a927e', stitches: '#3a2424', eyes: '#d6e6a0', glowEyes: true, patches: ['#7d8a6c', '#a3a88e'], torn: true,
+  },
+  robber: {
+    legH: 7.8, legW: 2.1, legX: 1.2, torsoH: 6.4, torsoW: 5.6, torsoD: 3.4, headW: 3.3, headH: 3.4, armW: 1.7, armLen: 6.6,
+    skin: '#cfa585', hair: '#2a2018', torso: '#4a3a28', sleeve: '#4a3a28', legs: '#3a3428', boots: '#1e1810',
+    coatSkirt: { len: 2.6, color: '#3e3020' }, scarf: '#6a2a22', hat: 'cap', hatColor: '#2a2620', eyes: '#1a1410', belt: '#2a2018',
+  },
+  acolyte: {
+    legH: 8, legW: 2, legX: 1.1, torsoH: 6.6, torsoW: 5.2, torsoD: 3.2, headW: 3.3, headH: 3.5, armW: 1.6, armLen: 6.6,
+    skin: '#5a4a52', hair: '#1a141a', torso: '#2a2433', sleeve: '#2a2433', legs: '#2a2433', boots: '#141018',
+    robe: '#241f2c', hood: '#1e1a25', faceDark: '#121016', eyes: '#7cf0ff', glowEyes: true, belt: '#6a4a2a',
+  },
+  brute: {
+    legH: 11, legW: 3.4, legX: 2.1, torsoH: 10, torsoW: 10, torsoD: 6, headW: 4.2, headH: 4.4, armW: 3.2, armLen: 10.5,
+    skin: '#a89a8a', hair: '#1a1816', torso: '#a89a8a', sleeve: '#a89a8a', legs: '#3a3028', boots: '#2a221c',
+    patches: ['#8a967a', '#c09a84', '#968878'], stitches: '#3a2020', bolts: '#70707a', eyes: '#e8d8a0', glowEyes: true, chains: '#4a4a52',
+    forearm: '#968878',
+  },
+  sexton: {
+    legH: 9.6, legW: 1.9, legX: 1.1, torsoH: 7.6, torsoW: 5, torsoD: 3, headW: 3.2, headH: 3.8, armW: 1.5, armLen: 8,
+    skin: '#cdbcaa', hair: '#d8d0c0', torso: '#141218', sleeve: '#141218', legs: '#141218', boots: '#0a090c',
+    coatSkirt: { len: 7.4, color: '#100e14' }, collar: '#d8d0c0', hat: 'wide', hatColor: '#0b0a0d', eyes: '#ff9a3a', glowEyes: true, sunken: true,
+  },
+  creature: {
+    legH: 11, legW: 2.8, legX: 1.7, torsoH: 9.6, torsoW: 7.6, torsoD: 4.4, headW: 4, headH: 4.4, armW: 2.4, armLen: 9.8,
+    skin: '#c9b77a', skin2: '#b8a568', hair: '#08080a', torso: '#2a2420', sleeve: '#2a2420', legs: '#24201c', boots: '#1a1612',
+    coatSkirt: { len: 4, color: '#221c18' }, longHair: true, lips: '#1a1012', eyes: '#e8e0b8', stitches: '#5a3a30', forearm: '#c9b77a', torn: true,
+  },
+  unfinished: {
+    legH: 12, legW: 3.6, legX: 2.4, torsoH: 12, torsoW: 12, torsoD: 7, headW: 4.6, headH: 5, armW: 3.4, armLen: 12,
+    skin: '#d8d0c8', hair: '#1a1410', torso: '#d8d0c8', sleeve: '#d8d0c8', legs: '#cfc8b8', boots: '#b8aca0',
+    patches: ['#b8aca0', '#e4cbbf', '#c4b8a8'], stitches: '#5a2a30', bolts: '#c9a227', chestGlow: '#8fe9ff', cables: '#2a2a2e',
+    eyes: '#8fe9ff', glowEyes: true, sheet: '#cfc8b8', longHair: true, forearm: '#e8e0d0',
+  },
 };
 
-export function buildHero(id) {
-  const L = LOOKS[id] || LOOKS.pip;
-  const s = 0.1;
-  const big = !!L.big;
-  const eye = '#191736';
-  const legW = big ? 2.6 : 2;
-  const makeLeg = (iron) => {
-    const v = V().box(-legW / 2, -3, -1.1, legW, 3, 2.2, L.legs).box(-legW / 2 - 0.1, -3, -1.25, legW + 0.2, 1.1, 2.6, L.boots);
-    if (iron) v.box(-legW / 2 - 0.4, -2.3, -1.5, legW + 0.8, 0.7, 3, '#4a4a52');
-    return v.build(s, false);
-  };
-  const legL = makeLeg(!!L.iron);
-  const legR = makeLeg(false);
-  const armW = big ? 2.6 : 1.8;
-  const av = V();
-  if (big) {
-    av.box(-armW / 2, -1.6, -armW / 2, armW, 1.6, armW, L.shirt);
-    av.box(-armW / 2 + 0.1, -3.6, -armW / 2 + 0.1, armW - 0.2, 2, armW - 0.2, L.skin);
-  } else {
-    av.box(-armW / 2, -3.6, -armW / 2, armW, 3.6, armW, L.dress || L.coat);
+function stitchLine(v, x, y, z, len, vertical, color) {
+  if (vertical) v.box(x, y, z, 0.25, len, 0.15, color);
+  else v.box(x, y, z, len, 0.25, 0.15, color);
+  for (let i = 0.4; i < len; i += 0.9) {
+    if (vertical) v.box(x - 0.35, y + i, z, 0.95, 0.18, 0.16, color);
+    else v.box(x + i, y - 0.35, z, 0.18, 0.95, 0.16, color);
   }
-  av.box(-armW / 2, -4.6, -armW / 2, armW, 1.1, armW, L.skin);
-  const arm = av.build(s, false);
-
-  const body = V();
-  const bw = big ? 8 : 6;
-  if (L.dress) {
-    body.box(-bw / 2 - 0.8, 0.4, -2.8, bw + 1.6, 2.8, 5.6, L.dress2);
-    body.box(-bw / 2 - 0.4, 3.2, -2.4, bw + 0.8, 2, 4.8, L.dress);
-    body.box(-bw / 2, 5.2, -2, bw, 2.8, 4, L.dress);
-    body.box(-bw / 2 + 1, 1.0, 2.7, bw - 2, 6.2, 0.4, L.apron);
-    body.box(-1.2, 7.2, 1.9, 2.4, 0.8, 0.3, '#ffffff');
-  } else {
-    body.box(-bw / 2, 3, -2, bw, 5, 4, L.coat);
-    if (big) {
-      body.box(-bw / 2 + 0.8, 1.4, 2.0, bw - 1.6, 6.4, 0.4, L.apron);
-      body.box(-bw / 2 + 0.6, 7.2, 1.95, 0.8, 1, 0.3, L.apron);
-      body.box(bw / 2 - 1.4, 7.2, 1.95, 0.8, 1, 0.3, L.apron);
-    } else {
-      body.box(-bw / 2, 1.8, -2.15, bw, 1.6, 1.4, L.coat2);
-      body.box(-1, 3.6, 1.95, 2, 4.2, 0.2, L.shirt);
-      body.box(-bw / 2 - 0.05, 3.3, -2.05, bw + 0.1, 0.7, 4.1, L.coat2);
-      body.box(-0.25, 4.4, 2.1, 0.5, 0.5, 0.1, '#c9a227');
-      body.box(-0.25, 5.8, 2.1, 0.5, 0.5, 0.1, '#c9a227');
-    }
-    if (L.cravat) body.box(-1.2, 7.1, 1.9, 2.4, 1, 0.5, '#ffffff');
-    if (L.scarf) body.box(-bw / 2 + 0.2, 7.1, -2.2, bw - 0.4, 1, 4.4, L.scarf);
-    if (L.iron) body.box(-0.4, 5, 2.0, 0.8, 1.4, 0.2, '#4a4a52');
-  }
-  const bodyG = body.build(s, false);
-
-  const head = V();
-  head.box(-3.5, 0, -3, 7, 6, 6, L.skin);
-  head.box(-2.4, 2.4, 2.95, 1.2, 1.5, 0.2, eye);
-  head.box(1.2, 2.4, 2.95, 1.2, 1.5, 0.2, eye);
-  head.box(-2.1, 3.3, 3.05, 0.5, 0.5, 0.1, '#ffffff');
-  head.box(1.5, 3.3, 3.05, 0.5, 0.5, 0.1, '#ffffff');
-  head.box(-3.3, 1.5, 2.95, 1.1, 0.8, 0.2, '#ff9aa2');
-  head.box(2.2, 1.5, 2.95, 1.1, 0.8, 0.2, '#ff9aa2');
-  if (L.stubble) head.box(-2.6, 0.1, 2.95, 5.2, 1.1, 0.15, '#9a7a62');
-  head.box(-3.7, 4.6, -3.2, 7.4, 1.6, 6.4, L.hair);
-  head.box(-3.7, 1.6, -3.2, 1, 3.2, 4.2, L.hair);
-  head.box(2.7, 1.6, -3.2, 1, 3.2, 4.2, L.hair);
-  head.box(-3.7, 0.8, -3.25, 7.4, 4, 1, L.hair);
-  if (L.whiskers) {
-    head.box(-3.7, 0.2, 0.6, 1, 2.6, 2.2, L.hair);
-    head.box(2.7, 0.2, 0.6, 1, 2.6, 2.2, L.hair);
-  }
-  if (L.hat === 'cap') {
-    head.box(-3.9, 5.6, -3.4, 7.8, 1.4, 6.8, L.hatCol);
-    head.box(-3.4, 5.5, 3.3, 6.8, 0.5, 1.8, '#3a3a46');
-  } else if (L.hat === 'top') {
-    head.box(-4.4, 5.8, -3.8, 8.8, 0.6, 7.6, L.hatCol);
-    head.box(-3, 6.4, -2.6, 6, 5, 5.2, L.hatCol);
-    head.box(-3.05, 6.6, -2.65, 6.1, 0.8, 5.3, '#5a3a2a');
-  } else if (L.hat === 'bonnet') {
-    head.box(-4.1, 3, -3.7, 8.2, 4.4, 1.2, L.hatCol);
-    head.box(-4.1, 6, -3.7, 8.2, 1.4, 7.5, L.hatCol);
-    head.box(-4.1, 1.4, -3.7, 0.9, 4.8, 7.5, L.hatCol);
-    head.box(3.2, 1.4, -3.7, 0.9, 4.8, 7.5, L.hatCol);
-    head.box(-4.3, 6.4, 3.5, 8.6, 1, 0.8, L.hatCol);
-    head.box(-0.7, -0.2, 3.0, 1.4, 1.2, 0.5, L.ribbon);
-    head.box(-3.3, 6.6, -1.5, 6.6, 0.6, 1.2, L.ribbon);
-  } else if (L.hat === 'rag') {
-    head.box(-3.8, 3.8, -3.3, 7.6, 1.4, 6.6, L.hatCol);
-    head.box(2.4, 3.6, -3.9, 1.6, 1.6, 1, L.hatCol);
-  }
-  const headG = head.build(s, false);
-  return {
-    legL, legR, arm, body: bodyG, head: headG,
-    legX: big ? 1.6 : 1.3, legY: 3,
-    armX: big ? 5.3 : 4, armY: 7.6,
-    headY: 8, scale: s,
-  };
 }
 
-// ---------------------------------------------------------------- enemies
-export function enemyGeometry(type) {
-  const v = V();
-  switch (type) {
-    case 'gloop':
-      v.box(-4.5, 0, -4.5, 9, 5, 9, '#7d5fd3');
-      v.box(-3.5, 5, -3.5, 7, 2, 7, '#8f72e0');
-      v.box(-2.5, 7, -2.5, 5, 1, 5, '#a58cf0');
-      v.box(-3.2, 5.6, 2.5, 1.6, 1, 1.05, '#d7ccff');
-      v.box(-2.6, 2.6, 4.5, 2, 2, 0.4, '#ffffff');
-      v.box(0.6, 2.6, 4.5, 2, 2, 0.4, '#ffffff');
-      v.box(-2.1, 2.8, 4.85, 1, 1.2, 0.3, '#191736');
-      v.box(1.1, 2.8, 4.85, 1, 1.2, 0.3, '#191736');
-      v.box(-1, 1.2, 4.5, 2, 0.7, 0.4, '#3b2a6b');
-      break;
-    case 'flutter':
-      v.box(-2, 0, -2, 4, 4, 4, '#4b3a6b');
-      v.box(-1.5, 0.5, 2, 3, 2.4, 0.4, '#6a5592');
-      v.box(-2, 4, -0.5, 1, 1.6, 1, '#4b3a6b');
-      v.box(1, 4, -0.5, 1, 1.6, 1, '#4b3a6b');
-      v.box(-7, 1.6, -1.2, 5, 0.8, 3, '#33264f');
-      v.box(2, 1.6, -1.2, 5, 0.8, 3, '#33264f');
-      v.box(-8.5, 2.2, -1.2, 1.6, 0.8, 2, '#33264f');
-      v.box(6.9, 2.2, -1.2, 1.6, 0.8, 2, '#33264f');
-      v.box(-1.5, 2.3, 2.0, 1, 1, 0.4, '#ffe066');
-      v.box(0.5, 2.3, 2.0, 1, 1, 0.4, '#ffe066');
-      break;
-    case 'shroom':
-      v.box(-2, 0, -2, 4, 5, 4, '#f1e3c8');
-      v.box(-1.5, 2.4, 2, 1, 1.3, 0.4, '#191736');
-      v.box(0.5, 2.4, 2, 1, 1.3, 0.4, '#191736');
-      v.box(-4, 5, -4, 8, 1, 8, '#d9c6a3');
-      v.box(-5, 6, -5, 10, 3, 10, '#9b4fd1');
-      v.box(-3.5, 9, -3.5, 7, 1, 7, '#b066e8');
-      v.box(-2.5, 9.6, -1, 2, 0.6, 2, '#f4e9ff');
-      v.box(1, 9.6, 1, 1.6, 0.6, 1.6, '#f4e9ff');
-      v.box(4.8, 7, -1, 0.5, 1.5, 2, '#f4e9ff');
-      v.box(-5.3, 7, 1, 0.5, 1.5, 1.6, '#f4e9ff');
-      v.box(-1, 7, 4.8, 2, 1.5, 0.5, '#f4e9ff');
-      break;
-    case 'spitbud':
-      v.box(-1, 0, -1, 2, 4, 2, '#3e8f4a');
-      v.box(-4, 0.5, -1, 3, 1, 2, '#4caf50');
-      v.box(1, 0.5, -1, 3, 1, 2, '#4caf50');
-      v.box(-3.5, 4, -3.5, 7, 6, 7, '#d64f9a');
-      v.box(-4.5, 5.5, -2, 1, 3.5, 4, '#ff7ac0');
-      v.box(3.5, 5.5, -2, 1, 3.5, 4, '#ff7ac0');
-      v.box(-2, 5.5, -4.5, 4, 3.5, 1, '#ff7ac0');
-      v.box(-2, 10, -2, 4, 1, 4, '#ff7ac0');
-      v.box(-1.6, 5.2, 3.5, 3.2, 2.4, 0.5, '#3a1030');
-      v.box(-2.6, 8, 3.5, 1.6, 1, 0.4, '#ffffff');
-      v.box(1, 8, 3.5, 1.6, 1, 0.4, '#ffffff');
-      break;
-    case 'beetle':
-      v.box(-4, 1, -5, 8, 4, 9, '#2e3f7a');
-      v.box(-0.5, 5, -5, 1, 0.5, 9, '#4a63b5');
-      v.box(-3, 5, -3, 2, 0.4, 3, '#5b78d1');
-      v.box(-3, 1, 4, 6, 3, 3, '#1f2a52');
-      v.box(-0.5, 3, 6, 1, 1, 3, '#c9d4ff');
-      v.box(-2.5, 2.5, 7, 1, 1, 0.4, '#ff5d5d');
-      v.box(1.5, 2.5, 7, 1, 1, 0.4, '#ff5d5d');
-      for (const z of [-4, -1, 2]) {
-        v.box(-5, 0, z, 1, 2, 1, '#1f2a52');
-        v.box(4, 0, z, 1, 2, 1, '#1f2a52');
-      }
-      break;
-    default:
-      v.box(-1, 0, -1, 2, 2, 2, '#ff00ff');
-  }
-  return v.build(1);
-}
-
-export function kingGeometry() {
-  const v = V();
-  v.box(-4.5, 0, -4.5, 9, 5, 9, '#6b4fc0');
-  v.box(-3.5, 5, -3.5, 7, 2, 7, '#7d5fd3');
-  v.box(-2.5, 7, -2.5, 5, 1, 5, '#8f72e0');
-  v.box(-2.6, 2.6, 4.5, 2, 2, 0.4, '#ffffff');
-  v.box(0.6, 2.6, 4.5, 2, 2, 0.4, '#ffffff');
-  v.box(-2.1, 2.6, 4.85, 1.2, 1.2, 0.3, '#191736');
-  v.box(0.9, 2.6, 4.85, 1.2, 1.2, 0.3, '#191736');
-  v.box(-2.4, 4.6, 4.5, 2, 0.5, 0.4, '#191736'); // angry brows
-  v.box(0.4, 4.6, 4.5, 2, 0.5, 0.4, '#191736');
-  v.box(-1.5, 1, 4.5, 3, 0.8, 0.4, '#2a1b52');
-  v.box(-3, 8, -3, 6, 1.6, 6, '#ffd23f');
-  for (const [x, z] of [[-3, -3], [2, -3], [-3, 2], [2, 2], [-0.5, -3], [-0.5, 2]]) v.box(x, 9.6, z, 1, 1.4, 1, '#ffd23f');
-  v.box(-0.6, 8.3, 2.9, 1.2, 1, 0.3, '#ff5d5d');
-  return v.build(0.36);
-}
-
-export function golemGeometry() {
-  const v = V();
-  v.box(-5, 0, -3, 4, 6, 6, '#3f3a57');
-  v.box(1, 0, -3, 4, 6, 6, '#3f3a57');
-  v.box(-7, 6, -4, 14, 10, 8, '#5d5878');
-  v.box(-7, 6, -4.05, 14, 1.5, 8.1, '#4a4562');
-  v.box(-2, 9, 3.9, 4, 4, 0.6, '#c38bff');
-  v.box(-1, 10, 4.3, 2, 2, 0.4, '#f0d9ff');
-  v.box(-4, 16, -3.5, 8, 6, 7, '#6b6690');
-  v.box(-3, 18, 3.4, 6, 1.5, 0.5, '#ff4fd8');
-  v.box(-10, 5, -2, 3, 10, 4, '#4a4562');
-  v.box(7, 5, -2, 3, 10, 4, '#4a4562');
-  v.box(-10.5, 3, -2.5, 4, 3, 5, '#3f3a57');
-  v.box(6.5, 3, -2.5, 4, 3, 5, '#3f3a57');
-  v.box(-9, 14, -2, 3, 5, 3, '#9b6bff');
-  v.box(6, 14, -2, 3, 5, 3, '#9b6bff');
-  v.box(-8.5, 18, -1.5, 2, 2, 2, '#c38bff');
-  v.box(6.5, 18, -1.5, 2, 2, 2, '#c38bff');
-  v.box(-1, 22, -1, 2, 3, 2, '#9b6bff');
-  return v.build(0.15);
-}
-
-// ---------------------------------------------------------------- props and pickups
-export function treeGeometry(kind) {
-  const v = V();
-  if (kind === 0) {
-    v.box(-1, 0, -1, 2, 6, 2, '#7a4a2a');
-    v.box(-3.5, 4.5, -3.5, 7, 0.6, 7, '#3a8f40');
-    v.box(-4, 5, -4, 8, 4, 8, '#4caf50');
-    v.box(-3, 9, -3, 6, 2, 6, '#5cc05e');
-    v.box(-1.5, 11, -1.5, 3, 1, 3, '#6fd16a');
-    v.box(-4.05, 6, 1, 0.2, 1, 1, '#ff8fb1');
-    v.box(2, 7, 3.95, 1, 1, 0.2, '#ff8fb1');
-  } else {
-    v.box(-1, 0, -1, 2, 3, 2, '#6b4226');
-    v.box(-4, 3, -4, 8, 2, 8, '#2f7a3a');
-    v.box(-3, 5, -3, 6, 2, 6, '#3a8f40');
-    v.box(-2, 7, -2, 4, 2, 4, '#4caf50');
-    v.box(-1, 9, -1, 2, 2, 2, '#5cc05e');
-  }
-  return v.build(0.2);
-}
-
-export function rockGeometry() {
-  return V().box(-2, 0, -1.5, 4, 2, 3, '#8e94a6').box(-1, 2, -1, 2, 1, 2, '#a9afc0').box(1, 0, 0.5, 2, 1, 2, '#7d8396').build(0.18);
-}
-
-export function tuftGeometry() {
-  return V().box(-1, 0, 0, 0.6, 2, 0.6, '#5fb84a').box(0, 0, -0.6, 0.6, 3, 0.6, '#6cc755').box(0.8, 0, 0.4, 0.6, 1.6, 0.6, '#4fa63e').build(0.13);
-}
-
-export function flowerGeometry(petal) {
-  const v = V();
-  v.box(-0.5, 0, -0.5, 1, 3, 1, '#3e8f4a');
-  v.box(0.5, 1, -0.5, 1.5, 0.6, 1, '#4caf50');
-  v.box(-1.5, 3, -0.5, 3, 1, 1, petal);
-  v.box(-0.5, 3, -1.5, 1, 1, 3, petal);
-  v.box(-0.5, 3.4, -0.5, 1, 1, 1, '#ffd23f');
-  return v.build(0.12);
-}
-
-export function chestGeometry() {
-  return V()
-    .box(-3, 0, -2, 6, 3, 4, '#8b5a2b')
-    .box(-3.2, 3, -2.2, 6.4, 1.6, 4.4, '#a0692f')
-    .box(-3.3, 1.5, -2.3, 6.6, 0.6, 4.6, '#ffd23f')
-    .box(-0.6, 2, 2.2, 1.2, 1.4, 0.4, '#ffd23f')
-    .build(0.14);
-}
-
-export function gemGeometry() {
-  return V().box(-1, 0, -1, 2, 1, 2, '#ffffff').box(-1.5, 1, -1.5, 3, 1.2, 3, '#ffffff').box(-1, 2.2, -1, 2, 1, 2, '#ffffff').box(-0.5, 3.2, -0.5, 1, 0.6, 1, '#ffffff').build(0.1);
-}
-
-export function acornGeometry(scale = 0.13) {
-  return V()
-    .box(-1.2, 0, -1.2, 2.4, 2.2, 2.4, '#d9a066')
-    .box(-1.5, 2, -1.5, 3, 1.2, 3, '#6b4226')
-    .box(-0.3, 3.2, -0.3, 0.6, 0.8, 0.6, '#5a3418')
-    .box(-0.9, 0.8, 1.15, 0.6, 0.8, 0.1, '#ffe2b5')
-    .build(scale);
-}
-
-export function appleGeometry() {
-  return V().box(-1.5, 0, -1.5, 3, 3, 3, '#e8484a').box(-0.8, 1.6, 1.45, 0.7, 0.7, 0.1, '#ffd0d0').box(-0.25, 3, -0.25, 0.5, 1, 0.5, '#6b4226').box(0.25, 3.3, -0.25, 1.2, 0.4, 0.8, '#4caf50').build(0.13);
-}
-
-export function honeyGeometry() {
-  return V().box(-1.3, 0, -1.3, 2.6, 2.8, 2.6, '#ffb627').box(-1.5, 2.8, -1.5, 3, 0.8, 3, '#8b5a2b').box(-0.7, 0.8, 1.25, 1.4, 1, 0.1, '#fff1c2').build(0.13);
-}
-
-export function coneGeometry() {
-  return V().box(-1.2, 0, -1.2, 2.4, 3, 2.4, '#7a4a2a').box(-1.5, 0.6, -1.5, 3, 0.6, 3, '#8b5a2b').box(-1.5, 1.8, -1.5, 3, 0.6, 3, '#8b5a2b').box(-0.2, 3, -0.2, 0.4, 1, 0.4, '#ff5d5d').build(0.14);
-}
-
-export function leafGeometry() {
-  return V().box(-2.5, 0, -0.8, 5, 0.5, 1.6, '#8be05f').box(-1.5, 0, -1.4, 3, 0.5, 2.8, '#7ed957').box(-2.5, 0.5, -0.15, 5, 0.12, 0.3, '#3f8f3a').build(0.15);
-}
-
-export function carrotGeometry() {
-  return V().box(-3, 0, -0.7, 5, 1.4, 1.4, '#ff7a1a').box(-4, 0.2, -0.45, 1, 1, 0.9, '#ff9f43').box(-1, 1.39, -0.7, 0.6, 0.05, 1.4, '#d95f00').box(2, 0.2, -0.5, 2, 1, 1, '#4caf50').box(3, 0.4, -1.2, 1.6, 0.6, 2.4, '#5fb84a').build(0.14);
-}
-
-export function beeGeometry() {
-  return V()
-    .box(-1, 0, -1.5, 2, 2, 3, '#ffd23f')
-    .box(-1.05, -0.02, -0.5, 2.1, 2.04, 0.6, '#191736')
-    .box(-1.05, -0.02, 0.8, 2.1, 2.04, 0.5, '#191736')
-    .box(-2.5, 2, -0.5, 1.8, 0.3, 1.5, '#e6f7ff')
-    .box(0.7, 2, -0.5, 1.8, 0.3, 1.5, '#e6f7ff')
-    .box(-0.3, 0.7, -2, 0.6, 0.6, 0.5, '#191736')
-    .build(0.11);
-}
-
-export function cloudGeometry(seed) {
-  const r = rng(seed);
-  const v = V();
-  const n = 3 + Math.floor(r() * 3);
-  for (let i = 0; i < n; i++) {
-    const w = 4 + r() * 6, d = 3 + r() * 5, h = 1.5 + r() * 2.5;
-    v.box(i * 3 - n * 1.5 + r() * 2, r() * 1.2, -d / 2 + (r() - 0.5) * 3, w, h, d, '#ffffff');
-  }
-  return v.build(1);
-}
-
-// Unit box used for particles, projectiles and beams.
-export function cubeGeometry() {
-  return V().box(-0.5, -0.5, -0.5, 1, 1, 1, '#ffffff').build(1, false);
-}
-
-// ---------------------------------------------------------------- island mesher
-const AIR = 0, GRASS = 1, DIRT = 2, STONE = 3, DEEP = 4, CRYSTAL = 5, RIM = 6;
-
-const PALETTES = {
-  meadow: { grass: ['#6cc24a', '#78cc52', '#62b844', '#82d35c'], dirt: ['#9a6a3f', '#8d5f37'], stone: ['#8a8fa0', '#7c8193'], deep: ['#5f6278', '#56596d'], crystal: ['#c38bff', '#8fe9ff'] },
-  marsh: { grass: ['#86a85e', '#90b066', '#7a9c55', '#9ab872'], dirt: ['#6e5a3e', '#62503a'], stone: ['#7e8488', '#72787c'], deep: ['#555a64', '#4c5059'], crystal: ['#9fc8d8', '#c0d8e8'] },
-  garden: { grass: ['#4f9a3f', '#5aa646', '#46903a', '#63ae4e'], dirt: ['#7a5a3a', '#6e5034'], stone: ['#8a8680', '#7e7a74'], deep: ['#5a5650', '#504c48'], crystal: ['#ff8fb1', '#ffd23f'] },
-  cobble: { grass: ['#a8a292', '#b4ad9c', '#9a9586', '#bfb8a6'], dirt: ['#7a6a5a', '#6e5e50'], stone: ['#7c7a74', '#706e68'], deep: ['#55534e', '#4c4a46'], crystal: ['#ffd58a', '#e8b860'] },
-  bank: { grass: ['#6aac52', '#76b85c', '#609e48', '#82c466'], dirt: ['#8a7050', '#7e6448'], stone: ['#8a8fa0', '#7c8193'], deep: ['#5f6278', '#56596d'], crystal: ['#8fd3ff', '#b8e8ff'] },
-  village: { grass: ['#7cc95a', '#88d464', '#72bf52', '#93db6e'], dirt: ['#9a6a3f', '#8d5f37'], stone: ['#8a8fa0', '#7c8193'], deep: ['#5f6278', '#56596d'], crystal: ['#ffd23f', '#ff8fb1'] },
-};
-
-export const CELL = 4; // bloom cell size in world units
-
-export function islandRadius(theta) {
-  return 31 + 2.2 * Math.sin(3 * theta + 0.7) + 1.4 * Math.sin(5 * theta + 2.1) + 0.8 * Math.sin(9 * theta);
-}
-
-export function walkRadius(theta) {
-  return islandRadius(theta) - 2.8;
-}
-
-function toGloom(r, g, b) {
-  const lum = 0.3 * r + 0.59 * g + 0.11 * b;
-  const t = 0.62;
-  return [lum * (1 - t) + 0.09 * t, lum * (1 - t) + 0.075 * t, lum * (1 - t) + 0.16 * t];
-}
-
-export function buildIsland(seed = 7, paletteName = 'meadow') {
-  const COLORS = PALETTES[paletteName] || PALETTES.meadow;
-  const N = 80, Y0 = -17, Y1 = 3, SY = Y1 - Y0;
-  const half = N / 2;
-  const grid = new Uint8Array(N * N * SY);
-  const shadeVar = new Uint8Array(N * N * SY);
+function humanoid(L, seed) {
   const R = rng(seed);
-  const at = (x, y, z) => {
-    if (x < 0 || z < 0 || x >= N || z >= N || y < Y0 || y >= Y1) return AIR;
-    return grid[((y - Y0) * N + z) * N + x];
+  const s = 0.1;
+  const { legH, legW, legX, torsoH: tH, torsoW: tW, torsoD: tD, headW, headH, armW, armLen } = L;
+  const hipY = legH, topY = legH + tH;
+  const legGeo = (iron) => {
+    const v = V();
+    v.box(-legW / 2, -legH, -legW / 2, legW, legH, legW, L.legs);
+    v.box(-legW / 2 - 0.15, -legH, -legW / 2 - 0.25, legW + 0.3, legH * 0.28, legW + 0.55, L.boots);
+    if (L.torn) v.box(-legW / 2 - 0.1, -legH * 0.55, -legW / 2 - 0.1, legW + 0.2, 0.6, legW + 0.2, L.rags || L.legs, 0.8);
+    return v.build(s);
   };
-  const set = (x, y, z, t) => {
-    const i = ((y - Y0) * N + z) * N + x;
-    grid[i] = t;
-    shadeVar[i] = Math.floor(R() * 4);
-  };
+  const b = V();
+  if (L.robe) {
+    b.box(-tW / 2 - 0.6, 0.3, -tD / 2 - 0.6, tW + 1.2, hipY + 0.2, tD + 1.2, L.robe);
+    b.box(-tW / 2 - 0.3, 0.3, tD / 2 + 0.5, tW + 0.6, 0.8, 0.2, L.belt || L.robe, 0.7);
+  }
+  b.box(-tW / 2, hipY, -tD / 2, tW, tH, tD, L.torso);
+  if (L.coatSkirt) {
+    const c = L.coatSkirt;
+    b.box(-tW / 2 - 0.2, hipY - c.len, -tD / 2 - 0.3, tW + 0.4, c.len + 0.6, 0.6, c.color);
+    b.box(-tW / 2 - 0.4, hipY - c.len, -tD / 2 - 0.3, 0.6, c.len + 0.6, tD + 0.2, c.color);
+    b.box(tW / 2 - 0.2, hipY - c.len, -tD / 2 - 0.3, 0.6, c.len + 0.6, tD + 0.2, c.color);
+    if (L.torn) for (let i = 0; i < 4; i++) b.box(-tW / 2 + R() * tW, hipY - c.len - 0.8, -tD / 2 - 0.3, 0.8, 1, 0.5, c.color, 0.9);
+  }
+  if (L.cape) b.box(-tW / 2 - 0.45, topY - 2.6, -tD / 2 - 0.45, tW + 0.9, 2.6, tD + 0.9, L.cape);
+  if (L.shirtFront) b.box(-0.9, hipY + 2.2, tD / 2 - 0.05, 1.8, tH - 2.4, 0.2, L.shirtFront);
+  if (L.cravat) b.box(-1.15, topY - 1.3, tD / 2 - 0.3, 2.3, 1.3, 0.7, L.cravat);
+  if (L.buttons) for (const yy of [hipY + 1.5, hipY + 3]) { b.box(-1.6, yy, tD / 2, 0.5, 0.5, 0.15, L.buttons); b.box(1.1, yy, tD / 2, 0.5, 0.5, 0.15, L.buttons); }
+  if (L.belt && !L.robe) b.box(-tW / 2 - 0.05, hipY + 0.4, -tD / 2 - 0.05, tW + 0.1, 0.7, tD + 0.1, L.belt);
+  if (L.collar) b.box(-tW / 2 + 0.5, topY - 0.8, -tD / 2 - 0.2, tW - 1, 1, tD + 0.4, L.collar);
+  if (L.patches) for (let i = 0; i < 5; i++) {
+    const w = 1.5 + R() * 2.5, h = 1.5 + R() * 2.5;
+    const x = -tW / 2 + R() * (tW - w), y = hipY + R() * (tH - h);
+    b.box(x, y, tD / 2 - 0.05, w, h, 0.15, L.patches[i % L.patches.length]);
+  }
+  if (L.stitches) {
+    stitchLine(b, -tW / 2 + 1, hipY + tH * 0.55, tD / 2 + 0.05, tW - 2, false, L.stitches);
+    stitchLine(b, tW * 0.15, hipY + 1, tD / 2 + 0.05, tH - 2, true, L.stitches);
+  }
+  if (L.rags) for (let i = 0; i < 5; i++) b.box(-tW / 2 + R() * (tW - 1), hipY - 0.6 - R(), -tD / 2 + R() * tD, 1, 1.2, 0.6, L.rags);
+  if (L.chestGlow) {
+    b.box(-1.8, hipY + tH * 0.45, tD / 2 - 0.1, 3.6, 3, 0.4, L.chestGlow);
+    for (let i = 0; i < 4; i++) b.box(-2.6, hipY + tH * 0.45 + i * 0.8, tD / 2 + 0.2, 5.2, 0.3, 0.2, '#e8e0d0');
+  }
+  if (L.cables) for (let i = 0; i < 4; i++) {
+    const x = -tW / 2 + 1.5 + i * (tW - 3) / 3;
+    b.box(x, hipY + 2 - i * 1.5, -tD / 2 - 0.6, 0.5, tH - 1 + i * 1.5, 0.5, L.cables);
+  }
+  if (L.bolts) { b.box(-tW / 2 + 0.6, topY - 0.6, -0.4, 1.4, 0.8, 0.8, L.bolts); b.box(tW / 2 - 2, topY - 0.6, -0.4, 1.4, 0.8, 0.8, L.bolts); }
+  if (L.sheet) b.box(-tW / 2 - 0.5, hipY - 3, -tD / 2 - 0.5, tW + 1, 3.6, tD + 1, L.sheet);
+  const bodyGeo = b.build(s);
 
-  for (let z = 0; z < N; z++) {
-    for (let x = 0; x < N; x++) {
-      const wx = x - half + 0.5, wz = z - half + 0.5;
-      const r = Math.hypot(wx, wz);
-      const th = Math.atan2(wz, wx);
-      const Rt = islandRadius(th);
-      if (r > Rt) continue;
-      const t = r / Rt;
-      const depth = Math.max(2, Math.floor(2 + 13.5 * Math.pow(Math.max(0, 1 - t * t), 0.75) + (valueNoise(wx * 0.25, wz * 0.25, 3) - 0.5) * 4));
-      for (let L = -1; L >= -depth && L >= Y0; L--) {
-        let type;
-        if (L === -1) type = GRASS;
-        else if (L >= -3) type = DIRT;
-        else if (R() < 0.035) type = CRYSTAL;
-        else type = L < -8 ? DEEP : STONE;
-        set(x, L, z, type);
-      }
-      if (r > Rt - 1.8 && valueNoise(wx * 0.5, wz * 0.5, 9) > 0.42) {
-        set(x, 0, z, RIM);
-        if (valueNoise(wx * 0.7, wz * 0.7, 11) > 0.7) set(x, 1, z, RIM);
-      }
+  const h = V();
+  const hw = headW / 2;
+  h.box(-hw, 0, -hw, headW, headH, headW, L.skin);
+  if (L.skin2) h.box(-hw - 0.05, 0.4, -hw * 0.3, 1.2, 1.6, hw * 1.2, L.skin2);
+  const eyeY = headH * 0.52;
+  const ew = L.glowEyes ? 0.7 : 0.55;
+  if (L.sunken) { h.box(-hw + 0.5, eyeY - 0.4, hw - 0.1, 1.2, 1, 0.15, '#3a2e28'); h.box(hw - 1.7, eyeY - 0.4, hw - 0.1, 1.2, 1, 0.15, '#3a2e28'); }
+  h.box(-hw + 0.75, eyeY, hw - 0.05, ew, ew * 0.8, 0.2, L.eyes);
+  h.box(hw - 0.75 - ew, eyeY, hw - 0.05, ew, ew * 0.8, 0.2, L.eyes);
+  if (L.brows) { h.box(-hw + 0.6, eyeY + 0.8, hw - 0.05, 1, 0.3, 0.2, L.brows); h.box(hw - 1.6, eyeY + 0.8, hw - 0.05, 1, 0.3, 0.2, L.brows); }
+  if (L.lips) h.box(-0.8, headH * 0.2, hw - 0.05, 1.6, 0.4, 0.2, L.lips);
+  if (L.stitches) stitchLine(h, -hw + 0.4, headH * 0.78, hw + 0.05, headW - 0.8, false, L.stitches);
+  if (L.scarf) h.box(-hw - 0.1, -0.2, -hw - 0.1, headW + 0.2, headH * 0.4, headW + 0.2, L.scarf);
+  if (L.hood) {
+    h.box(-hw - 0.4, -0.2, -hw - 0.4, headW + 0.8, headH + 0.8, 0.8, L.hood);
+    h.box(-hw - 0.4, headH, -hw - 0.4, headW + 0.8, 0.6, headW + 0.8, L.hood);
+    h.box(-hw - 0.4, -0.2, -hw - 0.4, 0.6, headH + 0.6, headW + 0.8, L.hood);
+    h.box(hw - 0.2, -0.2, -hw - 0.4, 0.6, headH + 0.6, headW + 0.8, L.hood);
+    h.box(-hw + 0.2, 0.2, hw - 0.15, headW - 0.4, headH - 0.6, 0.12, L.faceDark);
+    h.box(-hw + 0.75, eyeY, hw - 0.02, 0.6, 0.45, 0.2, L.eyes);
+    h.box(hw - 1.35, eyeY, hw - 0.02, 0.6, 0.45, 0.2, L.eyes);
+  } else {
+    h.box(-hw - 0.15, headH - 0.6, -hw - 0.15, headW + 0.3, 0.8, headW + 0.3, L.hair);
+    h.box(-hw - 0.15, headH * 0.4, -hw - 0.15, headW + 0.3, headH * 0.6, 0.6, L.hair);
+    if (L.longHair) {
+      h.box(-hw - 0.3, -2.5, -hw - 0.3, headW + 0.6, headH + 2.4, 1, L.hair);
+      h.box(-hw - 0.3, -1.5, -hw - 0.3, 0.6, headH + 1.4, headW * 0.6, L.hair);
+      h.box(hw - 0.3, -1.5, -hw - 0.3, 0.6, headH + 1.4, headW * 0.6, L.hair);
     }
   }
-
-  const CN = N / CELL;
-  const pos = [], nor = [], col = [], ind = [];
-  const gloomCol = [], bloomCol = [], vCell = [];
-  let vc = 0;
-  const DIRS = [
-    { n: [1, 0, 0], u: [0, 1, 0], v: [0, 0, 1], shade: SHADE.px },
-    { n: [-1, 0, 0], u: [0, 1, 0], v: [0, 0, 1], shade: SHADE.nx },
-    { n: [0, 1, 0], u: [1, 0, 0], v: [0, 0, 1], shade: SHADE.py },
-    { n: [0, -1, 0], u: [1, 0, 0], v: [0, 0, 1], shade: SHADE.ny },
-    { n: [0, 0, 1], u: [1, 0, 0], v: [0, 1, 0], shade: SHADE.pz },
-    { n: [0, 0, -1], u: [1, 0, 0], v: [0, 1, 0], shade: SHADE.nz },
-  ];
-  const AO = [0.5, 0.68, 0.84, 1];
-
-  function colorFor(type, sv, isTop, x, z) {
-    let hex;
-    switch (type) {
-      case GRASS: case RIM:
-        hex = COLORS.grass[(sv + Math.floor(valueNoise(x * 0.3, z * 0.3, 5) * 3)) % 4];
-        break;
-      case DIRT: hex = COLORS.dirt[sv % 2]; break;
-      case STONE: hex = COLORS.stone[sv % 2]; break;
-      case DEEP: hex = COLORS.deep[sv % 2]; break;
-      case CRYSTAL: hex = COLORS.crystal[sv % 2]; break;
-      default: hex = '#ff00ff';
-    }
-    _c.set(hex);
-    return [_c.r, _c.g, _c.b];
+  if (L.hat === 'top') {
+    h.box(-hw - 0.7, headH - 0.2, -hw - 0.7, headW + 1.4, 0.4, headW + 1.4, L.hatColor);
+    h.box(-hw + 0.1, headH + 0.2, -hw + 0.1, headW - 0.2, 3.4, headW - 0.2, L.hatColor);
+    h.box(-hw + 0.05, headH + 0.3, -hw + 0.05, headW - 0.1, 0.5, headW - 0.1, L.hatBand);
+  } else if (L.hat === 'cap') {
+    h.box(-hw - 0.2, headH - 0.3, -hw - 0.2, headW + 0.4, 1, headW + 0.4, L.hatColor);
+    h.box(-hw, headH - 0.4, hw, headW, 0.3, 1.2, L.hatColor);
+  } else if (L.hat === 'wide') {
+    h.box(-hw - 1.6, headH - 0.2, -hw - 1.6, headW + 3.2, 0.35, headW + 3.2, L.hatColor);
+    h.box(-hw + 0.2, headH + 0.15, -hw + 0.2, headW - 0.4, 1.8, headW - 0.4, L.hatColor);
   }
+  const headGeo = h.build(s);
 
-  function emitFace(x, y, z, d, rgb, grassy, cell, y0f = 0, y1f = 1) {
-    // Corners of the face in world space (block min corner = x - half, y, z - half).
-    const bx = x - half, by = y, bz = z - half;
-    const n = d.n, u = d.u, w = d.v;
-    const base = [bx + (n[0] > 0 ? 1 : 0), by + (n[1] > 0 ? 1 : 0), bz + (n[2] > 0 ? 1 : 0)];
-    const corners = [[0, 0], [1, 0], [1, 1], [0, 1]];
-    const verts = [];
-    for (const [cu, cv] of corners) {
-      let fu = cu, fv = cv;
-      // Side faces may be split vertically (grass strip). u is y for x-faces, v is y for z-faces.
-      if (d.n[0] !== 0) fu = cu === 0 ? y0f : y1f;
-      if (d.n[2] !== 0) fv = cv === 0 ? y0f : y1f;
-      const px = base[0] + u[0] * fu + w[0] * fv;
-      const py = base[1] + u[1] * fu + w[1] * fv;
-      const pz = base[2] + u[2] * fu + w[2] * fv;
-      // AO samples in the layer in front of the face.
-      const ox = x + n[0], oy = y + n[1], oz = z + n[2];
-      const su = cu ? 1 : -1, sv = cv ? 1 : -1;
-      const s1 = at(ox + u[0] * su, oy + u[1] * su, oz + u[2] * su) !== AIR ? 1 : 0;
-      const s2 = at(ox + w[0] * sv, oy + w[1] * sv, oz + w[2] * sv) !== AIR ? 1 : 0;
-      const cr = at(ox + u[0] * su + w[0] * sv, oy + u[1] * su + w[1] * sv, oz + u[2] * su + w[2] * sv) !== AIR ? 1 : 0;
-      const ao = s1 && s2 ? 0 : 3 - (s1 + s2 + cr);
-      verts.push([px, py, pz, AO[ao]]);
-    }
-    // Winding: make (b-a)x(c-a) point along n.
-    const a = verts[0], b = verts[1], c = verts[2];
-    const e1 = [b[0] - a[0], b[1] - a[1], b[2] - a[2]], e2 = [c[0] - a[0], c[1] - a[1], c[2] - a[2]];
-    const cx = e1[1] * e2[2] - e1[2] * e2[1], cy = e1[2] * e2[0] - e1[0] * e2[2], cz = e1[0] * e2[1] - e1[1] * e2[0];
-    const order = cx * n[0] + cy * n[1] + cz * n[2] < 0 ? [0, 3, 2, 1] : [0, 1, 2, 3];
-    const g = grassy ? toGloom(rgb[0], rgb[1], rgb[2]) : null;
-    for (const k of order) {
-      const p = verts[k];
-      const m = d.shade * p[3];
-      pos.push(p[0], p[1], p[2]);
-      nor.push(n[0], n[1], n[2]);
-      if (grassy) {
-        col.push(g[0] * m, g[1] * m, g[2] * m);
-        gloomCol.push(g[0] * m, g[1] * m, g[2] * m);
-        bloomCol.push(rgb[0] * m, rgb[1] * m, rgb[2] * m);
-        vCell.push(cell);
-      } else {
-        col.push(rgb[0] * m, rgb[1] * m, rgb[2] * m);
-        gloomCol.push(0, 0, 0);
-        bloomCol.push(0, 0, 0);
-        vCell.push(-1);
-      }
-    }
-    // Flip the diagonal when AO is uneven to avoid streaks.
-    const aoA = verts[order[0]][3] + verts[order[2]][3];
-    const aoB = verts[order[1]][3] + verts[order[3]][3];
-    if (aoA < aoB) ind.push(vc + 1, vc + 2, vc + 3, vc + 1, vc + 3, vc);
-    else ind.push(vc, vc + 1, vc + 2, vc, vc + 2, vc + 3);
-    vc += 4;
-  }
-
-  const dirt = (() => { _c.set(COLORS.dirt[0]); return [_c.r, _c.g, _c.b]; })();
-  for (let y = Y0; y < Y1; y++) {
-    for (let z = 0; z < N; z++) {
-      for (let x = 0; x < N; x++) {
-        const type = at(x, y, z);
-        if (type === AIR) continue;
-        const sv = shadeVar[((y - Y0) * N + z) * N + x];
-        const cell = Math.floor(x / CELL) + Math.floor(z / CELL) * CN;
-        const grassy = type === GRASS || type === RIM;
-        for (const d of DIRS) {
-          if (at(x + d.n[0], y + d.n[1], z + d.n[2]) !== AIR) continue;
-          const rgb = colorFor(type, sv, d.n[1] > 0, x, z);
-          if (grassy && d.n[1] === 0) {
-            // Grass side: green strip on top, dirt below.
-            emitFace(x, y, z, d, rgb, true, cell, 0.7, 1);
-            emitFace(x, y, z, d, dirt, false, cell, 0, 0.7);
-          } else if (grassy && d.n[1] < 0) {
-            emitFace(x, y, z, d, dirt, false, cell);
-          } else {
-            emitFace(x, y, z, d, rgb, grassy, cell);
-          }
-        }
-      }
-    }
-  }
-
-  const geo = new THREE.BufferGeometry();
-  geo.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
-  geo.setAttribute('normal', new THREE.Float32BufferAttribute(nor, 3));
-  const colorAttr = new THREE.Float32BufferAttribute(col, 3);
-  geo.setAttribute('color', colorAttr);
-  geo.setIndex(ind);
-  geo.computeBoundingSphere();
-
-  // Group grass vertices by bloom cell.
-  const cellVerts = Array.from({ length: CN * CN }, () => []);
-  for (let i = 0; i < vCell.length; i++) if (vCell[i] >= 0) cellVerts[vCell[i]].push(i);
+  const a = V();
+  const upper = armLen * 0.55;
+  a.box(-armW / 2, -upper, -armW / 2, armW, upper, armW, L.sleeve);
+  a.box(-armW / 2 + 0.05, -armLen + 0.9, -armW / 2 + 0.05, armW - 0.1, armLen - upper - 0.9, armW - 0.1, L.forearm || L.sleeve);
+  a.box(-armW / 2 + 0.1, -armLen, -armW / 2 + 0.1, armW - 0.2, 1, armW - 0.2, L.forearm || L.skin);
+  if (L.chains) a.box(-armW / 2 - 0.2, -armLen + 1.2, -armW / 2 - 0.2, armW + 0.4, 0.7, armW + 0.4, L.chains);
+  if (L.cape) a.box(-armW / 2 - 0.3, -1.8, -armW / 2 - 0.3, armW + 0.6, 1.8, armW + 0.6, L.cape);
+  const armGeo = a.build(s);
 
   return {
-    geo, colorAttr,
-    gloom: new Float32Array(gloomCol), bloom: new Float32Array(bloomCol),
-    cellVerts, CN, N, half,
+    body: bodyGeo, head: headGeo, legL: legGeo(false), legR: legGeo(false), arm: armGeo,
+    legX: legX * s, hipY: hipY * s, shoulderX: (tW / 2 + armW / 2 - 0.1) * s, shoulderY: (topY - armW * 0.45) * s,
+    headY: topY * s, armLen: armLen * s, height: (topY + headH) * s,
   };
 }
 
-// ---------------------------------------------------------------- set pieces (authored around the origin, not recentred)
-export const PROP_SCALE = {
-  church: 0.36, grave: 0.2, battery: 0.22, reed: 0.12, clock: 0.21, manor: 0.42, cake: 0.2, lamp: 0.2,
-  townhouse: 0.32, townhouse2: 0.32, crate: 0.18, barrel: 0.18, boat: 0.26, jetty: 0.25, cottage: 0.34,
-  anvil: 0.2, hay: 0.22, fence: 0.22, parcel: 0.16, coin: 0.13, boomerang: 0.16, posy: 0.16,
-};
-
-export function propGeometry(name) {
+export function itemGeometry(name) {
   const v = V();
   switch (name) {
-    case 'church':
-      v.box(-6, 0, -4, 12, 9, 8, '#9a958a');
-      v.box(-6.4, 9, -4.4, 12.8, 1.4, 8.8, '#4a4f5a');
-      v.box(-5.6, 10.4, -3.6, 11.2, 1.4, 7.2, '#525866');
-      v.box(-4.4, 11.8, -2.4, 8.8, 1.4, 4.8, '#4a4f5a');
-      v.box(-3, 13.2, -1.2, 6, 1, 2.4, '#525866');
-      v.box(-2.6, 0, 4, 5.2, 15, 5.2, '#8f8a7e');
-      v.box(-3, 15, 3.6, 6, 1, 6, '#7a766c');
-      v.box(-2, 16, 4.6, 4, 4, 4, '#4a4f5a');
-      v.box(-1, 20, 5.6, 2, 3, 2, '#525866');
-      v.box(-0.3, 23, 6.3, 0.6, 1.6, 0.6, '#c9a227');
-      v.box(-1, 0, 9.15, 2, 3.6, 0.2, '#4a3020');
-      v.box(-0.8, 10, 9.15, 1.6, 2.4, 0.2, '#2a2a3a');
-      for (const z of [-2.5, 0.5]) {
-        v.box(-6.15, 3, z, 0.2, 3, 1.4, '#2a3040');
-        v.box(5.95, 3, z, 0.2, 3, 1.4, '#2a3040');
+    case 'sabre': {
+      v.box(-0.25, -1.1, -0.25, 0.5, 1.2, 0.5, '#3a2a1a');
+      v.box(-0.75, -1.4, -0.35, 1.5, 0.35, 0.7, '#b8954a');
+      v.box(-0.55, -1.1, 0.2, 0.25, 1.4, 0.25, '#b8954a');
+      let z = 0;
+      for (let i = 0; i < 6; i++) {
+        v.box(-0.12, -2.6 - i * 1.3, -0.18 + z, 0.24, 1.32, 0.45, '#d8dce4');
+        z += 0.12;
       }
-      break;
-    case 'grave':
-      v.box(-1.5, 0, -0.5, 3, 3.4, 1, '#a4a4a8');
-      v.box(-1, 3.4, -0.5, 2, 0.6, 1, '#a4a4a8');
-      v.box(-1.1, 2, 0.45, 2.2, 0.2, 0.1, '#7a7a80');
-      v.box(-0.8, 1.3, 0.45, 1.6, 0.2, 0.1, '#7a7a80');
-      v.box(-1.4, 0, 0.6, 2.8, 0.5, 3, '#5e5040');
-      break;
-    case 'battery':
-      v.box(-5, 0, -4, 10, 2, 8, '#6e8052');
-      v.box(-4, 2, -3, 8, 1, 6, '#7a8a5e');
-      v.box(-1.6, 3, -1.6, 3.2, 1.4, 3.2, '#5a3a22');
-      v.box(-2.2, 2.4, -1, 0.6, 2.2, 2.2, '#3a2614');
-      v.box(1.6, 2.4, -1, 0.6, 2.2, 2.2, '#3a2614');
-      v.box(-0.7, 4, -1, 1.4, 1.4, 6, '#2a2a2e');
-      v.box(-0.9, 3.8, 4.6, 1.8, 1.8, 0.6, '#2a2a2e');
-      v.box(3, 3, 1.5, 1, 1, 1, '#2a2a2e');
-      v.box(3.2, 3, 2.7, 1, 1, 1, '#2a2a2e');
-      v.box(3.1, 4, 2.1, 1, 1, 1, '#2a2a2e');
-      break;
-    case 'reed':
-      v.box(0, 0, 0, 0.5, 5, 0.5, '#8a9a5a');
-      v.box(0.8, 0, -0.7, 0.5, 4, 0.5, '#7a8a4a');
-      v.box(-0.8, 0, 0.6, 0.5, 3.4, 0.5, '#94a462');
-      v.box(-0.05, 5, -0.05, 0.6, 1.4, 0.6, '#6b4a2a');
-      v.box(0.75, 4, -0.75, 0.6, 1.2, 0.6, '#6b4a2a');
-      break;
-    case 'clock':
-      v.box(-1.5, 0, -1, 3, 3, 2, '#5a3a22');
-      v.box(-1.1, 3, -0.8, 2.2, 6, 1.6, '#6b4428');
-      v.box(-0.5, 4.5, 0.75, 1, 3, 0.15, '#c9a227');
-      v.box(-1.6, 9, -1.1, 3.2, 3.4, 2.2, '#5a3a22');
-      v.box(-1.1, 9.6, 1.05, 2.2, 2.2, 0.15, '#f2e8c8');
-      v.box(-0.9, 10.6, 1.18, 0.9, 0.22, 0.08, '#1a1a1a');
-      v.box(-0.6, 9.9, 1.18, 0.22, 0.8, 0.08, '#1a1a1a');
-      v.box(-0.4, 12.4, -0.3, 0.8, 0.8, 0.6, '#c9a227');
-      break;
-    case 'manor':
-      v.box(-12, 0, -4, 24, 12, 8, '#8a4a3a');
-      v.box(-12.4, 12, -4.4, 24.8, 1.2, 8.8, '#3a3a44');
-      v.box(-11.6, 13.2, -3.4, 23.2, 1.4, 6.8, '#44444f');
-      v.box(-10, 14.6, -2, 20, 1.2, 4, '#3a3a44');
-      v.box(-9, 13, -1, 2, 5, 2, '#7a3e30');
-      v.box(7, 13, -1, 2, 5, 2, '#7a3e30');
-      for (const x of [-9.5, -5.5, 3.5, 7.5]) {
-        for (const y of [3, 8]) {
-          v.box(x, y, 3.95, 2, 2.6, 0.2, '#2a2028');
-          v.box(x - 0.2, y + 1, 4.05, 2.4, 0.5, 0.15, '#7a5a3a');
-        }
-      }
-      v.box(-1.2, 0, 3.95, 2.4, 4.4, 0.2, '#3a2418');
-      v.box(-1.6, 4.4, 3.95, 3.2, 0.6, 0.25, '#d8cfb8');
-      v.box(-12.1, 0, -1, 0.3, 8, 3, '#3f7a35');
-      v.box(10.5, 2, 3.9, 1.6, 7, 0.4, '#3f7a35');
-      v.box(-2, 0, 4, 4, 0.6, 1.4, '#b8b0a0');
-      break;
-    case 'cake':
-      for (const [x, z] of [[-3.4, -2.4], [2.8, -2.4], [-3.4, 1.8], [2.8, 1.8]]) v.box(x, 0, z, 0.6, 3, 0.6, '#4a3020');
-      v.box(-3.8, 3, -2.8, 7.6, 0.6, 5.6, '#d8d2c4');
-      v.box(-3.8, 2.2, 2.75, 7.6, 0.8, 0.1, '#cfc8b8');
-      v.box(-2, 3.6, -1.6, 4, 1.6, 3.2, '#d0c8b6');
-      v.box(-1.4, 5.2, -1.1, 2.8, 1.4, 2.2, '#c8bfac');
-      v.box(-0.8, 6.6, -0.6, 1.6, 1, 1.2, '#bfb6a2');
-      v.box(-2.1, 4.4, -1.65, 0.1, 2.6, 0.1, '#f4f4f4');
-      v.box(1.9, 4.6, 1.5, 0.1, 2.2, 0.1, '#f4f4f4');
-      v.box(1.3, 4, 1.7, 0.5, 0.4, 0.5, '#1a1a1a');
-      break;
-    case 'lamp':
-      v.box(-0.8, 0, -0.8, 1.6, 1.2, 1.6, '#2a2a30');
-      v.box(-0.4, 1.2, -0.4, 0.8, 9, 0.8, '#2a2a30');
-      v.box(-1.2, 9.4, -0.2, 2.4, 0.4, 0.4, '#2a2a30');
-      v.box(-0.9, 10, -0.9, 1.8, 2, 1.8, '#ffe08a');
-      v.box(-1.2, 12, -1.2, 2.4, 0.6, 2.4, '#2a2a30');
-      v.box(-0.4, 12.6, -0.4, 0.8, 0.8, 0.8, '#2a2a30');
-      break;
-    case 'townhouse':
-    case 'townhouse2': {
-      const wall = name === 'townhouse' ? '#8a5a48' : '#e0d6c0';
-      const door = name === 'townhouse' ? '#2a3a5a' : '#2f5a3c';
-      v.box(-5, 0, -4, 10, 14, 8, wall);
-      v.box(-5.3, 14, -4.3, 10.6, 1, 8.6, '#d8cfb8');
-      v.box(-4, 15, -2, 2, 3, 2, '#7a4a3a');
-      v.box(2, 15, -2, 2, 3, 2, '#7a4a3a');
-      let k = 0;
-      for (const x of [-3.5, 1.5]) {
-        for (const y of [4.5, 8.5, 11.5]) {
-          v.box(x, y, 3.95, 2, 2.4, 0.2, (k++ % 3 === 1) ? '#ffd58a' : '#2a3040');
-          v.box(x - 0.2, y - 0.3, 4, 2.4, 0.3, 0.4, '#d8cfb8');
-        }
-      }
-      v.box(-1, 0, 3.95, 2, 3.6, 0.2, door);
-      v.box(-1, 3.6, 3.95, 2, 0.8, 0.2, '#ffd58a');
-      v.box(-1.6, 0, 4, 3.2, 0.6, 1.2, '#b8b0a0');
       break;
     }
-    case 'crate':
-      v.box(-1.5, 0, -1.5, 3, 3, 3, '#a07848');
-      v.box(-1.55, 0.4, -1.55, 3.1, 0.5, 3.1, '#7a5a34');
-      v.box(-1.55, 2.1, -1.55, 3.1, 0.5, 3.1, '#7a5a34');
+    case 'pistol':
+      v.box(-0.35, -1.3, -0.45, 0.7, 1.6, 0.9, '#5a3a22');
+      v.box(-0.25, -1.2, 0.3, 0.5, 0.5, 3.4, '#3a3a42');
+      v.box(-0.3, -0.9, 0.2, 0.6, 0.6, 0.9, '#8a8a90');
       break;
-    case 'barrel':
-      v.box(-1.2, 0, -1.2, 2.4, 3.4, 2.4, '#8a5a30');
-      v.box(-1.4, 0.5, -1.4, 2.8, 2.4, 2.8, '#7a4a28');
-      v.box(-1.45, 0.6, -1.45, 2.9, 0.3, 2.9, '#3a3a3a');
-      v.box(-1.45, 2.5, -1.45, 2.9, 0.3, 2.9, '#3a3a3a');
+    case 'shovel':
+      v.box(-0.25, -12, -0.25, 0.5, 13, 0.5, '#6a4a2a');
+      v.box(-1.3, -15, -0.25, 2.6, 3, 0.5, '#5a5a62');
+      v.box(-0.9, 0.6, -0.3, 1.8, 0.4, 0.6, '#6a4a2a');
       break;
-    case 'boat':
-      v.box(-2, 0, -5, 4, 0.6, 10, '#5a3a22');
-      v.box(-2, 0.6, -5, 0.6, 1.4, 10, '#6b4428');
-      v.box(1.4, 0.6, -5, 0.6, 1.4, 10, '#6b4428');
-      v.box(-2, 0.6, -5, 4, 1.4, 0.6, '#6b4428');
-      v.box(-1, 0, 5, 2, 1.8, 1.4, '#6b4428');
-      v.box(-1.4, 1.2, -0.5, 2.8, 0.4, 1, '#8a6a45');
-      v.box(-4.5, 1.4, 0, 3, 0.3, 0.5, '#c8a060');
-      v.box(1.5, 1.4, 0, 3, 0.3, 0.5, '#c8a060');
+    case 'lantern':
+      v.box(-0.2, -0.8, -0.2, 0.4, 1, 0.4, '#2a2420');
+      v.box(-1, -3.4, -1, 2, 2.6, 2, '#2a2420');
+      v.box(-0.8, -3.2, -0.8, 1.6, 2.2, 1.6, '#ffb35a');
       break;
-    case 'jetty':
-      v.box(-3, 0, -3, 6, 0.6, 6, '#8a6a45');
-      for (const x of [-2, 0, 2]) v.box(x - 0.05, 0.55, -3, 0.1, 0.1, 6, '#5a4028');
-      for (const [x, z] of [[-3.2, -3.2], [2.4, -3.2], [-3.2, 2.4], [2.4, 2.4]]) v.box(x, 0, z, 0.8, 3.2, 0.8, '#5a3a22');
-      v.box(2.4, 3.2, 2.4, 0.8, 1, 0.8, '#ffd58a');
+    case 'vial':
+      v.box(-0.2, -0.6, -0.2, 0.4, 0.6, 0.4, '#8a6a4a');
+      v.box(-0.45, -2.2, -0.45, 0.9, 1.6, 0.9, '#7cf0ff');
       break;
-    case 'cottage':
-      v.box(-7, 0, -4, 14, 7, 8, '#ece2c8');
-      for (const x of [-7.05, -0.3, 6.45]) v.box(x, 0, -4.05, 0.6, 7, 8.1, '#4a3020');
-      v.box(-7.05, 3.2, -4.05, 14.1, 0.5, 8.1, '#4a3020');
-      v.box(-7.6, 7, -4.8, 15.2, 1.6, 9.6, '#c8a24a');
-      v.box(-6.8, 8.6, -3.8, 13.6, 1.6, 7.6, '#bf9a42');
-      v.box(-5.8, 10.2, -2.6, 11.6, 1.4, 5.2, '#c8a24a');
-      v.box(-4.6, 11.6, -1.2, 9.2, 1, 2.4, '#b8923c');
-      v.box(5, 6, -1.4, 2.2, 8, 2.2, '#8a5a4a');
-      v.box(4.8, 14, -1.6, 2.6, 0.6, 2.6, '#6a4a3a');
-      v.box(-2.8, 0, 3.95, 2.2, 4.6, 0.2, '#5a3a22');
-      v.box(1.2, 2.2, 3.95, 2.6, 2.2, 0.2, '#2a2a3a');
-      v.box(-6, 1.6, 3.95, 2.4, 2.4, 0.2, '#ff8a3a');
-      v.box(-11, 0, -3, 4, 4, 6, '#5a4a40');
-      v.box(-11.4, 4, -3.4, 4.8, 0.6, 6.8, '#4a3a32');
-      v.box(-10.5, 0.6, 2.95, 3, 2, 0.2, '#ff8a3a');
-      break;
-    case 'anvil':
-      v.box(-1.5, 0, -1.5, 3, 2, 3, '#6b4a2a');
-      v.box(-2, 2, -0.8, 4, 1.2, 1.6, '#3a3a42');
-      v.box(2, 2.3, -0.4, 1.4, 0.6, 0.8, '#3a3a42');
-      v.box(-0.5, 3.2, -0.2, 0.6, 0.6, 2, '#6b4a2a');
-      break;
-    case 'hay':
-      v.box(-2, 0, -1.5, 4, 3, 3, '#d8b85a');
-      v.box(-2.05, 0, -0.6, 4.1, 3.05, 0.4, '#a8883a');
-      v.box(-2.05, 0, 0.6, 4.1, 3.05, 0.4, '#a8883a');
-      break;
-    case 'fence':
-      v.box(-3, 0, -0.3, 0.6, 3, 0.6, '#7a5a3a');
-      v.box(2.4, 0, -0.3, 0.6, 3, 0.6, '#7a5a3a');
-      v.box(-3, 1, -0.2, 6, 0.5, 0.4, '#8a6a45');
-      v.box(-3, 2.2, -0.2, 6, 0.5, 0.4, '#8a6a45');
-      break;
-    case 'parcel':
-      v.box(-1.6, 0, -1.6, 3.2, 2.2, 3.2, '#c8a878');
-      v.box(-1.65, 0, -0.15, 3.3, 2.25, 0.3, '#5a3a22');
-      v.box(-0.15, 0, -1.65, 0.3, 2.25, 3.3, '#5a3a22');
-      v.box(-0.5, 2.2, -0.5, 1, 0.6, 1, '#5a3a22');
-      break;
-    case 'coin':
-      v.box(-1.2, 0.2, -0.25, 2.4, 2.4, 0.5, '#d8dce4');
-      v.box(-0.8, 0, -0.25, 1.6, 3.2, 0.5, '#d8dce4');
-      v.box(-1.6, 0.6, -0.25, 3.2, 1.6, 0.5, '#d8dce4');
-      v.box(-0.6, 0.8, -0.32, 1.2, 1.6, 0.64, '#aab2c0');
-      break;
-    case 'boomerang':
-      v.box(-3, 0, -0.6, 4.2, 0.5, 1.2, '#a0703a');
-      v.box(0, 0, -0.6, 1.2, 0.5, 4.2, '#a0703a');
-      v.box(-2.6, 0.5, -0.3, 3.4, 0.1, 0.6, '#c89058');
-      break;
-    case 'posy':
-      v.box(-0.3, -1, -0.3, 0.6, 1.5, 0.6, '#3e8f4a');
-      v.box(-1.5, 0.4, -1.5, 3, 0.8, 3, '#ff8fb1');
-      v.box(-0.6, 1, -0.6, 1.2, 0.6, 1.2, '#ffd23f');
-      v.box(-2.2, -0.3, -0.4, 1.5, 0.4, 0.8, '#5fb84a');
-      v.box(0.9, 0.2, 0.9, 1.2, 0.6, 1.2, '#f4f7ff');
+    case 'claw':
+      for (const x of [-0.9, -0.1, 0.7]) v.box(x, -1.6, 0.2, 0.3, 1.6, 0.3, '#2a2420');
       break;
     default:
-      v.box(-1, 0, -1, 2, 2, 2, '#ff00ff');
+      return null;
   }
-  return v.build(PROP_SCALE[name] || 0.2, false);
+  return v.build(0.1);
+}
+
+const RIG_ITEMS = {
+  victor: { right: 'sabre', left: 'pistol' }, shambler: {}, robber: { right: 'shovel' }, acolyte: { right: 'vial' },
+  brute: {}, sexton: { right: 'shovel', left: 'lantern' }, creature: {}, unfinished: {},
+};
+
+export function buildRig(kind) {
+  if (kind === 'hound') return buildHound();
+  const L = LOOKS[kind];
+  const r = humanoid(L, kind.length * 31 + 7);
+  const it = RIG_ITEMS[kind] || {};
+  r.kind = kind;
+  r.itemR = it.right ? itemGeometry(it.right) : null;
+  r.itemL = it.left ? itemGeometry(it.left) : null;
+  r.glowItemL = it.left === 'lantern';
+  return r;
+}
+
+function buildHound() {
+  const s = 0.1;
+  const body = V()
+    .box(-2.1, 5, -5.5, 4.2, 4.4, 11, '#2e2a26')
+    .box(-2.3, 7.4, -5.6, 4.6, 2.4, 6, '#3a342e')
+    .box(-0.6, 9.2, -5, 1.2, 0.8, 9, '#24201d')
+    .build(s);
+  const head = V()
+    .box(-1.9, -1.6, 0, 3.8, 3.6, 4, '#2e2a26')
+    .box(-1.2, -1.6, 4, 2.4, 2, 3, '#26221f')
+    .box(-0.5, -0.2, 6.9, 1, 0.8, 0.3, '#0c0a0a')
+    .box(-1.6, 2, 0.2, 1, 1.6, 1, '#24201d')
+    .box(0.6, 2, 0.2, 1, 1.6, 1, '#24201d')
+    .box(-1.5, 0.6, 3.95, 0.8, 0.6, 0.2, '#ff4a3a')
+    .box(0.7, 0.6, 3.95, 0.8, 0.6, 0.2, '#ff4a3a')
+    .box(-1, -2.2, 4.4, 2, 0.7, 2.2, '#d8d0c0')
+    .build(s);
+  const leg = V().box(-0.8, -5.2, -0.8, 1.6, 5.2, 1.6, '#26221f').box(-0.9, -5.2, -0.9, 1.8, 1, 2, '#1a1816').build(s);
+  const tail = V().box(-0.5, -0.5, -5, 1, 1, 5, '#2e2a26').build(s);
+  return { kind: 'hound', quad: true, body, head, leg, tail, headPos: [0, 0.82, 0.55], legs: [[-0.14, 0.52, 0.38], [0.14, 0.52, 0.38], [-0.14, 0.52, -0.42], [0.14, 0.52, -0.42]], tailPos: [0, 0.88, -0.55], height: 1.1 };
+}
+
+// ---------------------------------------------------------------- props (voxel units, scale 0.1, origin at ground centre)
+const P = (boxes, foot, h, tall = true) => ({ boxes, foot, h, tall });
+export const PROPS = {
+  tomb1: P([[-4, 0, -1.5, 8, 9, 3, '#6e6e74'], [-3, 9, -1.5, 6, 1.4, 3, '#6e6e74'], [-2.4, 5, 1.45, 4.8, 0.4, 0.2, '#4a4a50'], [-1.8, 3.6, 1.45, 3.6, 0.4, 0.2, '#4a4a50'], [-4.2, 0, -1.7, 2, 3, 0.6, '#4a5a3a']], [0.45, 0.2], 1),
+  tomb2: P([[-3, 0, -1.2, 6, 7, 2.4, '#5e5e66'], [-3.4, 0, -1.6, 6.8, 1, 3.2, '#4e4e56'], [-0.4, 7, -0.4, 0.8, 1.6, 0.8, '#5e5e66']], [0.36, 0.18], 0.85),
+  cross: P([[-0.8, 0, -0.8, 1.6, 12, 1.6, '#76767c'], [-3.2, 7.6, -0.8, 6.4, 1.6, 1.6, '#76767c'], [-2, 0, -2, 4, 1, 4, '#5a5a60']], [0.22, 0.22], 1.3),
+  obelisk: P([[-2.4, 0, -2.4, 4.8, 2, 4.8, '#5a5a62'], [-1.6, 2, -1.6, 3.2, 14, 3.2, '#6a6a72'], [-1, 16, -1, 2, 2, 2, '#6a6a72']], [0.3, 0.3], 1.8),
+  deadtree: P([[-1, 0, -1, 2, 16, 2, '#2a2420'], [-1, 9, 0, 6, 1.2, 1.2, '#2a2420'], [-6, 12, -1, 5, 1.2, 1.2, '#2a2420'], [3, 10, -0.6, 1.2, 6, 1.2, '#2a2420'], [-5, 13, -0.6, 1.2, 5, 1.2, '#2a2420']], [0.25, 0.25], 2),
+  mausoleum: P([[-14, 0, -12, 28, 18, 24, '#4e4e56'], [-15, 18, -13, 30, 2, 26, '#3e3e46'], [-12, 20, -10, 24, 2, 20, '#45454d'], [-4, 0, 11.9, 8, 13, 0.4, '#1a1a1e'], [-15, 0, 11, 2.4, 18, 2.4, '#5a5a62'], [12.6, 0, 11, 2.4, 18, 2.4, '#5a5a62'], [-3, 22, -1, 6, 4, 2, '#45454d']], [1.5, 1.3], 2.4),
+  grave: P([[-3, 0, -6, 6, 0.4, 12, '#3a2e22'], [-2.6, 0.4, -5.6, 5.2, 0.4, 11.2, '#2e241a']], [0.3, 0.6], 0.1, false),
+  lamppost: P([[-0.9, 0, -0.9, 1.8, 1.4, 1.8, '#1a1a1e'], [-0.4, 1.4, -0.4, 0.8, 16, 0.8, '#1a1a1e'], [-1.4, 17.4, -1.4, 2.8, 3, 2.8, '#1a1a1e'], [-1.1, 17.7, -1.1, 2.2, 2.4, 2.2, '#ffb35a'], [-1.7, 20.4, -1.7, 3.4, 0.6, 3.4, '#1a1a1e']], [0.2, 0.2], 2.1),
+  boulder: P([[-6, 0, -5, 12, 7, 10, '#5a6070'], [-4, 7, -3, 8, 3, 7, '#666c7c'], [-6.2, 7, -5.2, 7, 1, 6, '#e6eef6']], [0.6, 0.5], 1),
+  boulder2: P([[-4, 0, -4, 8, 5, 8, '#4e5464'], [-3, 5, -3, 6, 2, 5, '#e6eef6']], [0.4, 0.4], 0.7),
+  pine: P([[-1, 0, -1, 2, 5, 2, '#3a2a20'], [-6, 4, -6, 12, 4, 12, '#1e3a2e'], [-4.6, 8, -4.6, 9.2, 4, 9.2, '#24463a'], [-3, 12, -3, 6, 4, 6, '#2a5040'], [-1.5, 16, -1.5, 3, 3, 3, '#2a5040'], [-6.2, 7.6, -6.2, 12.4, 0.8, 12.4, '#e6eef6'], [-4.8, 11.6, -4.8, 9.6, 0.8, 9.6, '#e6eef6']], [0.3, 0.3], 2),
+  serac: P([[-3, 0, -3, 6, 10, 6, '#8fb4d8'], [-2, 10, -2, 4, 6, 4, '#a6c4e0'], [-1, 16, -1, 2, 4, 2, '#bcd4ea']], [0.35, 0.35], 1.8),
+  drift: P([[-7, 0, -4, 14, 2, 8, '#dfe8f0'], [-4, 2, -2, 8, 1.4, 5, '#eef4fa']], [0.7, 0.4], 0.3, false),
+  table: P([[-10, 6, -5, 20, 1.2, 10, '#4a3420'], [-9.5, 0, -4.5, 1.4, 6, 1.4, '#3a2818'], [8.1, 0, -4.5, 1.4, 6, 1.4, '#3a2818'], [-9.5, 0, 3.1, 1.4, 6, 1.4, '#3a2818'], [8.1, 0, 3.1, 1.4, 6, 1.4, '#3a2818'], [-7, 7.2, -3.6, 14, 2.4, 7.2, '#cfc8b8'], [-2, 9.6, -2, 4, 1, 4, '#cfc8b8'], [5, 7.2, -4, 1.4, 3, 1.4, '#7cf0ff'], [-8.4, 7.2, 2, 1.2, 2.4, 1.2, '#9ad86a']], [1.0, 0.5], 1),
+  coil: P([[-3, 0, -3, 6, 2, 6, '#3a2a1a'], [-1.2, 2, -1.2, 2.4, 14, 2.4, '#b8743a'], [-2.4, 4, -2.4, 4.8, 0.8, 4.8, '#c88a4a'], [-2.4, 8, -2.4, 4.8, 0.8, 4.8, '#c88a4a'], [-2.4, 12, -2.4, 4.8, 0.8, 4.8, '#c88a4a'], [-2, 16, -2, 4, 4, 4, '#d8dce4']], [0.3, 0.3], 2),
+  shelf: P([[-6, 0, -1.6, 12, 18, 3.2, '#3a2818'], [-5.4, 2, 1.2, 10.8, 3, 0.6, '#6a3a2a'], [-5.4, 7, 1.2, 10.8, 3, 0.6, '#2a4a3a'], [-5.4, 12, 1.2, 10.8, 3, 0.6, '#5a4a2a']], [0.6, 0.18], 1.8),
+  crate: P([[-3.5, 0, -3.5, 7, 7, 7, '#6a4a2a'], [-3.6, 1, -3.6, 7.2, 1, 7.2, '#4a3218'], [-3.6, 5, -3.6, 7.2, 1, 7.2, '#4a3218']], [0.36, 0.36], 0.7),
+  barrel: P([[-2.6, 0, -2.6, 5.2, 8, 5.2, '#5a3a20'], [-2.9, 1, -2.9, 5.8, 6, 5.8, '#4e321c'], [-3, 1.4, -3, 6, 0.6, 6, '#2a2a2e'], [-3, 6, -3, 6, 0.6, 6, '#2a2a2e']], [0.3, 0.3], 0.8),
+  jars: P([[-5, 0, -3, 10, 7, 6, '#3a2818'], [-4, 7, -2, 2, 3, 2, '#7cf0ff'], [-1, 7, -2, 2, 4, 2, '#9ad86a'], [2, 7, -2, 2, 2.6, 2, '#d8a84a']], [0.5, 0.3], 1),
+  slab: P([[-9, 0, -4, 18, 7, 8, '#5a5650'], [-8, 7, -3, 16, 1.6, 6, '#cfc8b8'], [-3, 8.6, -2, 5, 1.4, 4, '#c8c0b0']], [0.9, 0.4], 0.9),
+  iceblock: P([[-5, 0, -5, 10, 8, 10, '#9fc0dc'], [-4, 8, -4, 8, 2, 8, '#b8d2e8']], [0.5, 0.5], 1),
+  sledge: P([[-3, 0, -8, 0.8, 1.2, 16, '#5a3a22'], [2.2, 0, -8, 0.8, 1.2, 16, '#5a3a22'], [-3.4, 1.2, -6, 6.8, 1, 12, '#6a4a2a'], [-2.6, 2.2, -4, 5.2, 3, 7, '#4a4a3a'], [-3.4, 1.2, 6, 6.8, 4, 1, '#6a4a2a']], [0.35, 0.8], 0.5),
+  mast: P([[-1, 0, -1, 2, 24, 2, '#4a3220'], [-8, 18, -0.6, 16, 1.2, 1.2, '#4a3220'], [-6, 6, -0.4, 12, 10, 0.3, '#a8a090']], [0.2, 0.2], 2.4),
+  gaming: P([[-8, 7, -6, 16, 1.2, 12, '#2a4a32'], [-8.4, 6.6, -6.4, 16.8, 0.6, 12.8, '#4a3220'], [-7, 0, -5, 1.4, 6.6, 1.4, '#3a2818'], [5.6, 0, -5, 1.4, 6.6, 1.4, '#3a2818'], [-7, 0, 3.6, 1.4, 6.6, 1.4, '#3a2818'], [5.6, 0, 3.6, 1.4, 6.6, 1.4, '#3a2818'], [-1.6, 8.2, -1, 1.2, 1.2, 1.2, '#f2ecd8'], [0.6, 8.2, 0, 1.2, 1.2, 1.2, '#f2ecd8'], [-6, 8.2, 2, 3, 2.4, 3, '#ffcf7a']], [0.85, 0.65], 0.9),
+  candles: P([[-2, 0, -2, 4, 12, 4, '#2a2420'], [-3.4, 12, -0.5, 6.8, 0.8, 1, '#b8954a'], [-3.4, 12.8, -0.4, 0.8, 2.4, 0.8, '#efe6cc'], [2.6, 12.8, -0.4, 0.8, 2.4, 0.8, '#efe6cc'], [-0.4, 12.8, -0.4, 0.8, 3, 0.8, '#efe6cc'], [-3.3, 15.2, -0.3, 0.6, 0.8, 0.6, '#ffcf7a'], [2.7, 15.2, -0.3, 0.6, 0.8, 0.6, '#ffcf7a'], [-0.3, 15.8, -0.3, 0.6, 0.8, 0.6, '#ffcf7a']], [0.2, 0.2], 1.6),
+};
+
+function addProp(v, name, ox, oz, rot, scale = 0.1) {
+  const pr = PROPS[name];
+  const c = Math.round(rot) % 4;
+  for (const [x, y, z, w, h, d, col] of pr.boxes) {
+    let x0 = x, z0 = z, x1 = x + w, z1 = z + d;
+    for (let k = 0; k < c; k++) { const nx0 = -z1, nx1 = -z0, nz0 = x0, nz1 = x1; x0 = nx0; x1 = nx1; z0 = nz0; z1 = nz1; }
+    v.box(ox + x0 * scale, y * scale, oz + z0 * scale, (x1 - x0) * scale, h * scale, (z1 - z0) * scale, col);
+  }
+  const [fx, fz] = c % 2 ? [pr.foot[1], pr.foot[0]] : pr.foot;
+  return { x0: ox - fx, x1: ox + fx, z0: oz - fz, z1: oz + fz, h: pr.h, tall: pr.tall };
+}
+
+// ---------------------------------------------------------------- rooms
+export const BIOMES = {
+  graveyard: {
+    floor: ['#2e2f2a', '#33342e', '#2a2b27', '#363630'], path: ['#4a4740', '#423f39'], puddle: '#20252c',
+    wall: ['#4a4a50', '#424248', '#55555c'], cap: '#3a4434', trim: '#2a2a2e',
+    props: { tomb1: 5, tomb2: 4, cross: 3, obelisk: 1, deadtree: 1.4, mausoleum: 0.5, grave: 2 }, lamp: 'lamppost', backdrop: 'graveyard',
+  },
+  glacier: {
+    floor: ['#c4cfdc', '#b8c4d2', '#ccd6e2', '#aebbcc'], path: ['#93abc6', '#8aa4c0'], puddle: '#7f9cbc',
+    wall: ['#565c6c', '#4c5262', '#626878'], cap: '#e6eef6', trim: '#3a3e4a',
+    props: { boulder: 3, boulder2: 3, pine: 3, serac: 2, drift: 2 }, lamp: 'lamppost', backdrop: 'alps',
+  },
+  lab: {
+    floor: ['#3a3632', '#35312d', '#403a34', '#2f2b28'], path: ['#4a3826', '#433220'], puddle: '#262220',
+    wall: ['#2e2a28', '#36302c', '#28241f'], cap: '#1e1a18', trim: '#18140f',
+    props: { table: 1.6, coil: 1.5, shelf: 1.6, crate: 3, barrel: 2, jars: 1.6, slab: 1 }, lamp: 'candles', backdrop: 'lab',
+  },
+  ice: {
+    floor: ['#97adc4', '#a3b9cf', '#8ba3bb', '#b1c5d9'], path: ['#d4dee8', '#c8d4e0'], puddle: '#6f8aa8',
+    wall: ['#7a90a8', '#6e849c', '#8aa0b8'], cap: '#e8f0f8', trim: '#5a6e86',
+    props: { iceblock: 4, serac: 3, sledge: 1, mast: 0.8, drift: 3 }, lamp: 'lamppost', backdrop: 'arctic',
+  },
+};
+
+function pickWeighted(R, table) {
+  let sum = 0;
+  for (const k in table) sum += table[k];
+  let r = R() * sum;
+  for (const k in table) { if ((r -= table[k]) <= 0) return k; }
+  return Object.keys(table)[0];
+}
+
+export function gateGeometry() {
+  const v = V();
+  for (let i = 0; i < 6; i++) v.box(-1 + i * 0.38, 0, -0.06, 0.12, 3.1, 0.12, '#1c1c20');
+  v.box(-1.05, 0.9, -0.08, 2.1, 0.14, 0.16, '#1c1c20');
+  v.box(-1.05, 2.4, -0.08, 2.1, 0.14, 0.16, '#1c1c20');
+  for (let i = 0; i < 6; i++) v.box(-1.02 + i * 0.38, 3.1, -0.05, 0.08, 0.3, 0.1, '#2a2a30');
+  return v.build(1);
+}
+
+// Builds a walled arena. North wall holds the exit gates; the south wall is low so the camera sees in.
+export function buildRoom(opt) {
+  const { biome, W, D, seed, doors, kind } = opt;
+  const B = BIOMES[biome];
+  const R = rng(seed);
+  const v = V();
+  const hw = W / 2, hd = D / 2;
+  // Floor tiles with paths and puddles.
+  for (let x = -hw; x < hw; x++) {
+    for (let z = -hd; z < hd; z++) {
+      const n = valueNoise(x * 0.35, z * 0.35, seed % 97);
+      let col = B.floor[Math.floor(n * 3.99)];
+      const onPath = (Math.abs(x + 0.5) < 1.6 && z > -hd + 1) || doors.some((dx) => Math.abs(x + 0.5 - dx) < 1.3 && z < -hd + 4);
+      if (onPath && kind !== 'boss') col = B.path[(x + z) & 1];
+      else if (valueNoise(x * 0.6 + 40, z * 0.6, seed % 31) > 0.86) col = B.puddle;
+      v.top(x, z, 1, 1, 0, col, 0.92 + R() * 0.12);
+    }
+  }
+  const obstacles = [];
+  const wallBlock = (x, z, h, w = 1, d = 1) => {
+    for (let y = 0; y < h; y += 1) {
+      const hh = Math.min(1, h - y);
+      v.box(x, y, z, w, hh, d, B.wall[Math.floor(R() * B.wall.length)], 0.9 + R() * 0.15, true);
+    }
+    v.box(x - 0.04, h, z - 0.04, w + 0.08, 0.18, d + 0.08, B.cap, 1, true);
+  };
+  // North wall with gate gaps.
+  const northH = 3.6;
+  for (let x = -hw - 1; x < hw + 1; x++) {
+    const inGap = doors.some((dx) => x + 0.5 > dx - 1.2 && x + 0.5 < dx + 1.2);
+    if (inGap) continue;
+    const h = northH + (R() < 0.25 ? -0.4 : 0) + (doors.some((dx) => Math.abs(x + 0.5 - dx) < 2.2) ? 1 : 0);
+    wallBlock(x, -hd - 1, h);
+  }
+  for (const dx of doors) v.box(dx - 1.6, 3.4, -hd - 1.1, 3.2, 0.7, 1.2, B.trim);
+  // Side walls.
+  for (let z = -hd; z < hd + 1; z++) {
+    wallBlock(-hw - 1, z, 2.4 + (R() < 0.2 ? 0.5 : 0));
+    wallBlock(hw, z, 2.4 + (R() < 0.2 ? 0.5 : 0));
+  }
+  // Low south wall with an entrance gap.
+  for (let x = -hw; x < hw; x++) {
+    if (Math.abs(x + 0.5) < 1.6) continue;
+    wallBlock(x, hd, 0.7);
+  }
+  obstacles.push({ x0: -hw - 2, x1: hw + 2, z0: -hd - 3, z1: -hd, h: 4, tall: true, wall: true });
+  obstacles.push({ x0: -hw - 3, x1: -hw, z0: -hd - 2, z1: hd + 2, h: 3, tall: true, wall: true });
+  obstacles.push({ x0: hw, x1: hw + 3, z0: -hd - 2, z1: hd + 2, h: 3, tall: true, wall: true });
+  obstacles.push({ x0: -hw - 2, x1: hw + 2, z0: hd, z1: hd + 3, h: 1, tall: false, wall: true });
+  // Backdrop silhouettes beyond the north wall.
+  const back = (x, z, w, d, h, col) => v.box(x, 0, z, w, h, d, col, 1, true);
+  if (B.backdrop === 'graveyard') {
+    back(-6, -hd - 9, 6, 5, 9, '#1c1e24'); back(-4.5, -hd - 8, 3, 3, 15, '#1c1e24'); back(-3.8, -hd - 7.4, 1.6, 1.6, 18, '#1c1e24');
+    for (let i = 0; i < 5; i++) back(-hw + 3 + i * 6 + R() * 2, -hd - 5 - R() * 3, 0.5, 0.5, 5 + R() * 3, '#141418');
+  } else if (B.backdrop === 'alps') {
+    for (let i = 0; i < 6; i++) { const x = -hw - 6 + i * 7; back(x, -hd - 18, 9, 8, 10 + R() * 8, '#3a4252'); back(x + 2, -hd - 17, 5, 5, 16 + R() * 6, '#d8e2ee'); }
+  } else if (B.backdrop === 'arctic') {
+    for (let i = 0; i < 7; i++) back(-hw - 4 + i * 6, -hd - 10 - R() * 6, 4, 3, 3 + R() * 5, '#7a90a8');
+  } else if (B.backdrop === 'lab') {
+    for (const x of [-hw + 4, -2, hw - 6]) v.box(x, 1.6, -hd - 1.05, 2, 1.6, 0.1, '#56627a');
+  }
+  // Interior obstacles, keeping the entrance lane, the centre and the gate approaches clear.
+  const placed = [];
+  const blocked = (o) => {
+    if (o.x0 < -hw + 1 || o.x1 > hw - 1 || o.z0 < -hd + 1.4 || o.z1 > hd - 1) return true;
+    if (Math.abs((o.x0 + o.x1) / 2) < 2.6 && o.z1 > hd - 5) return true;
+    if (Math.hypot((o.x0 + o.x1) / 2, (o.z0 + o.z1) / 2) < 2.6) return true;
+    for (const dx of doors) if (o.x1 > dx - 2.6 && o.x0 < dx + 2.6 && o.z0 < -hd + 4) return true;
+    for (const q of placed) if (o.x0 < q.x1 + 1.3 && o.x1 > q.x0 - 1.3 && o.z0 < q.z1 + 1.3 && o.z1 > q.z0 - 1.3) return true;
+    return false;
+  };
+  const lights = [];
+  if (kind === 'chance') {
+    const o = addProp(v, 'gaming', 0, -1, 0);
+    obstacles.push(o); placed.push(o);
+    for (const [x, z] of [[-5, -3], [5, -3]]) { const c = addProp(v, 'candles', x, z, 0); obstacles.push(c); placed.push(c); lights.push({ x, y: 1.7, z }); }
+  } else {
+    const n = kind === 'boss' ? 5 : Math.floor((W * D) / 36);
+    for (let tries = 0; tries < 300 && placed.length < n; tries++) {
+      const name = pickWeighted(R, B.props);
+      const pr = PROPS[name];
+      const rot = Math.floor(R() * 4);
+      const x = -hw + 2 + R() * (W - 4), z = -hd + 2.5 + R() * (D - 5);
+      const [fx, fz] = rot % 2 ? [pr.foot[1], pr.foot[0]] : pr.foot;
+      const test = { x0: x - fx, x1: x + fx, z0: z - fz, z1: z + fz };
+      if (blocked(test)) continue;
+      const o = addProp(v, name, x, z, rot);
+      placed.push(o);
+      if (o.h > 0.25) obstacles.push(o);
+    }
+    for (const [x, z] of [[-hw + 1.6, -hd + 1.8], [hw - 1.6, -hd + 1.8], [-hw + 1.6, hd - 2.4], [hw - 1.6, hd - 2.4]]) {
+      if (kind !== 'boss' && R() < 0.25) continue;
+      const o = addProp(v, B.lamp, x, z, 0);
+      obstacles.push(o);
+      lights.push({ x, y: B.lamp === 'candles' ? 1.7 : 1.9, z });
+    }
+  }
+  return { geo: v.build(1), obstacles, lights, W, D, doors: doors.map((x) => ({ x, z: -hd - 0.5 })) };
 }
