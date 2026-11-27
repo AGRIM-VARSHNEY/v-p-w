@@ -1,0 +1,765 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Diligence Compass</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<meta name="description" content="Tag each deal assumption with how sure you are. Diligence Compass simulates the deal and ranks the unknowns by what it is worth to resolve each one before signing.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+/* Layout: a working ledger. Verdict sheet across the top, the input ledger on the
+   left (sticky on wide screens), findings on the right, one column on phones. */
+:root {
+  --paper: #EDEEE3;
+  --sheet: #F6F6EF;
+  --ink: #0E2A2C;
+  --ink-soft: #3F5557;
+  --ink-faint: #627574;
+  --rule: #D2D5C7;
+  --rule-strong: #A8AE9F;
+  --accent: #B8863B;
+  --accent-ink: #7E581C;
+  --accent-wash: rgba(184, 134, 59, 0.14);
+  --good: #2C6A5E;
+  --warn: #946419;
+  --bad: #9A3B3B;
+  --zone-mid: #A3AB9A;
+  --good-wash: rgba(44, 106, 94, 0.12);
+  --warn-wash: rgba(184, 134, 59, 0.16);
+  --bad-wash: rgba(154, 59, 59, 0.12);
+  --tooltip-bg: #0E2A2C;
+  --tooltip-fg: #EDEEE3;
+
+  --font-display: 'Fraunces', Georgia, 'Times New Roman', serif;
+  --font-body: 'IBM Plex Sans', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --font-mono: 'IBM Plex Mono', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+
+  --step--1: 0.8125rem;
+  --step-0: 1rem;
+  --step-1: 1.1875rem;
+  --step-2: 1.5rem;
+  --step-3: 2.125rem;
+  --step-4: 3.25rem;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --paper: #0C1A1B;
+    --sheet: #122627;
+    --ink: #E4E6DA;
+    --ink-soft: #B1BDB9;
+    --ink-faint: #8C9C98;
+    --rule: #233839;
+    --rule-strong: #3B5454;
+    --accent: #D1A256;
+    --accent-ink: #E2B86E;
+    --accent-wash: rgba(209, 162, 86, 0.16);
+    --good: #6FB5A4;
+    --warn: #DDB062;
+    --bad: #DE8A7E;
+    --zone-mid: #5F7370;
+    --good-wash: rgba(111, 181, 164, 0.14);
+    --warn-wash: rgba(221, 176, 98, 0.15);
+    --bad-wash: rgba(222, 138, 126, 0.14);
+    --tooltip-bg: #E4E6DA;
+    --tooltip-fg: #0C1A1B;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --paper: #0C1A1B;
+  --sheet: #122627;
+  --ink: #E4E6DA;
+  --ink-soft: #B1BDB9;
+  --ink-faint: #8C9C98;
+  --rule: #233839;
+  --rule-strong: #3B5454;
+  --accent: #D1A256;
+  --accent-ink: #E2B86E;
+  --accent-wash: rgba(209, 162, 86, 0.16);
+  --good: #6FB5A4;
+  --warn: #DDB062;
+  --bad: #DE8A7E;
+  --zone-mid: #5F7370;
+  --good-wash: rgba(111, 181, 164, 0.14);
+  --warn-wash: rgba(221, 176, 98, 0.15);
+  --bad-wash: rgba(222, 138, 126, 0.14);
+  --tooltip-bg: #E4E6DA;
+  --tooltip-fg: #0C1A1B;
+  color-scheme: dark;
+}
+
+*, *::before, *::after { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body {
+  margin: 0;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--font-body);
+  font-size: var(--step-0);
+  line-height: 1.5;
+}
+h1, h2, h3, p, ol, ul, dl, dd, figure { margin: 0; }
+h1, h2, h3 { text-wrap: balance; }
+button, input, select, textarea { font: inherit; color: inherit; }
+a { color: var(--accent-ink); }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.sr-only {
+  position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+  overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0;
+}
+
+.wrap {
+  max-width: 1320px;
+  margin: 0 auto;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+
+.eyebrow {
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+
+/* ---------- Masthead ---------- */
+.masthead { border-bottom: 1px solid var(--rule); }
+.masthead .wrap {
+  padding-block: 28px 22px;
+  display: grid;
+  gap: 10px 48px;
+  grid-template-columns: minmax(0, 1fr);
+  align-items: end;
+}
+.masthead h1 {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: var(--step-3);
+  line-height: 1.05;
+  letter-spacing: -0.01em;
+  font-variation-settings: 'opsz' 144;
+}
+.masthead .lede { color: var(--ink-soft); max-width: 62ch; }
+@media (min-width: 900px) {
+  .masthead .wrap { grid-template-columns: auto minmax(0, 1fr); }
+  .masthead h1 { font-size: 2.75rem; }
+}
+
+/* ---------- Page grid ---------- */
+.layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 28px 44px;
+  padding-block: 24px 72px;
+}
+.layout > * { min-width: 0; }
+@media (min-width: 1060px) {
+  .layout {
+    grid-template-columns: minmax(0, 440px) minmax(0, 1fr);
+    grid-template-areas: "summary summary" "inputs outputs";
+  }
+  .summary { grid-area: summary; }
+  .inputs {
+    grid-area: inputs;
+    position: sticky;
+    top: env(safe-area-inset-top, 0px);
+    align-self: start;
+    max-height: 100vh;
+    overflow-y: auto;
+    padding-right: 14px;
+    padding-bottom: 24px;
+    scrollbar-width: thin;
+  }
+  .outputs { grid-area: outputs; }
+}
+
+.section-title {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: var(--step-2);
+  line-height: 1.2;
+}
+.section-head { display: grid; gap: 4px; margin-bottom: 14px; }
+.section-head p.note { color: var(--ink-soft); max-width: 68ch; font-size: 0.9375rem; }
+
+/* ---------- Summary sheet ---------- */
+.summary {
+  background: var(--sheet);
+  border: 1px solid var(--rule);
+  border-radius: 6px;
+  padding: 22px clamp(16px, 3vw, 32px);
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 22px;
+}
+.summary-top {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 16px;
+  align-items: center;
+  justify-content: space-between;
+}
+.deal-name {
+  font-family: var(--font-display);
+  font-size: var(--step-1);
+  font-weight: 600;
+}
+.deal-note { color: var(--ink-faint); font-size: var(--step--1); max-width: 70ch; }
+.pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  padding: 6px 12px;
+  border-radius: 999px;
+  border: 1px solid currentColor;
+  white-space: nowrap;
+}
+.pill::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: currentColor; }
+.pill[data-state="clears"] { color: var(--good); background: var(--good-wash); }
+.pill[data-state="close"] { color: var(--warn); background: var(--warn-wash); }
+.pill[data-state="short"] { color: var(--bad); background: var(--bad-wash); }
+.pill[data-state="error"] { color: var(--bad); background: var(--bad-wash); }
+
+.summary-main {
+  display: grid;
+  gap: 22px 40px;
+  grid-template-columns: minmax(0, 1fr);
+}
+@media (min-width: 640px) {
+  .tiles { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+@media (min-width: 860px) {
+  .summary-main { grid-template-columns: minmax(0, 5fr) minmax(0, 7fr); }
+}
+.jump { font-family: var(--font-mono); font-size: 0.8125rem; }
+.hero { display: grid; gap: 4px; align-content: start; }
+.hero-name {
+  font-family: var(--font-display);
+  font-size: var(--step-2);
+  line-height: 1.15;
+  font-weight: 600;
+  margin-top: 2px;
+}
+.hero-fig {
+  font-family: var(--font-body);
+  font-weight: 600;
+  font-size: var(--step-4);
+  line-height: 1.05;
+  letter-spacing: -0.02em;
+  color: var(--accent-ink);
+  margin-top: 6px;
+}
+.hero-sub { color: var(--ink-soft); max-width: 46ch; }
+.verdict-text { color: var(--ink); max-width: 72ch; }
+.verdict-text p + p { margin-top: 8px; }
+
+.tiles {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0;
+  border-top: 1px solid var(--rule);
+  border-left: 1px solid var(--rule);
+  align-content: start;
+}
+.tile {
+  padding: 12px 14px;
+  border-right: 1px solid var(--rule);
+  border-bottom: 1px solid var(--rule);
+  display: grid;
+  gap: 2px;
+  align-content: start;
+}
+.tile-label { font-size: var(--step--1); color: var(--ink-soft); }
+.tile-value { font-weight: 600; font-size: var(--step-2); line-height: 1.15; }
+.tile-sub { font-family: var(--font-mono); font-size: 0.75rem; color: var(--ink-faint); }
+.errors { color: var(--bad); display: grid; gap: 4px; }
+.errors li { margin-left: 1.1em; }
+
+/* ---------- Inputs ---------- */
+.inputs { display: grid; grid-template-columns: minmax(0, 1fr); gap: 30px; align-content: start; }
+.inputs fieldset { border: 0; padding: 0; margin: 0; min-width: 0; display: grid; gap: 12px; }
+.inputs legend { padding: 0; margin-bottom: 4px; width: 100%; }
+.inputs legend .section-title { display: block; }
+.inputs legend .eyebrow { display: block; margin-bottom: 4px; }
+.fs-note { color: var(--ink-soft); font-size: 0.9375rem; }
+
+input[type="number"], input[type="text"], select, textarea {
+  font-family: var(--font-mono);
+  font-size: 0.875rem;
+  background: var(--sheet);
+  color: var(--ink);
+  border: 1px solid var(--rule-strong);
+  border-radius: 4px;
+  padding: 6px 8px;
+  min-width: 0;
+  width: 100%;
+}
+input[type="number"] { text-align: right; font-variant-numeric: tabular-nums; }
+input[aria-invalid="true"] { border-color: var(--bad); box-shadow: 0 0 0 1px var(--bad); }
+textarea { resize: vertical; line-height: 1.45; }
+
+.field {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 9.5rem);
+  gap: 4px 12px;
+  align-items: center;
+}
+.field > label { font-size: 0.9375rem; }
+.field .derived {
+  grid-column: 1 / -1;
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  color: var(--ink-faint);
+  text-align: right;
+  margin-top: -2px;
+}
+.num { display: flex; align-items: center; gap: 6px; min-width: 0; }
+.num input { flex: 1 1 auto; }
+.unit {
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  color: var(--ink-faint);
+  min-width: 2.6rem;
+  white-space: nowrap;
+}
+.cheque {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding-top: 10px;
+  border-top: 1px solid var(--rule);
+  font-family: var(--font-mono);
+  font-size: 0.8125rem;
+}
+.cheque strong { font-weight: 500; }
+
+.ledger { display: grid; }
+.ledger-row {
+  display: grid;
+  gap: 8px;
+  padding-block: 14px;
+  border-top: 1px solid var(--rule);
+}
+.ledger-row:last-child { border-bottom: 1px solid var(--rule); }
+.lr-head { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 8.5rem); gap: 12px; align-items: center; }
+.lr-label { font-weight: 600; font-size: 0.9375rem; }
+.lr-hint { font-size: var(--step--1); color: var(--ink-faint); margin-top: -4px; }
+.lr-line { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 10px; }
+.lr-line .mini { font-family: var(--font-mono); font-size: 0.75rem; color: var(--ink-faint); }
+.lr-line input[type="number"] { width: 5.25rem; flex: 0 0 auto; }
+.lr-line .spacer { flex: 1 1 auto; }
+
+.conf { display: inline-flex; border: 1px solid var(--rule-strong); border-radius: 4px; overflow: hidden; }
+.conf input { position: absolute; opacity: 0; width: 1px; height: 1px; }
+.conf label {
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  padding: 4px 9px;
+  cursor: pointer;
+  color: var(--ink-soft);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.conf label + input + label { border-left: 1px solid var(--rule-strong); }
+.conf label::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: var(--dot); opacity: 0.55; }
+.conf label[data-c="H"] { --dot: var(--good); }
+.conf label[data-c="M"] { --dot: var(--accent); }
+.conf label[data-c="L"] { --dot: var(--bad); }
+.conf input:checked + label { background: var(--ink); color: var(--paper); }
+.conf input:checked + label::before { opacity: 1; }
+.conf input:focus-visible + label { outline: 2px solid var(--accent); outline-offset: -2px; }
+
+.link-btn {
+  background: none;
+  border: 0;
+  padding: 2px 0;
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  color: var(--accent-ink);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  cursor: pointer;
+}
+.tag-custom { font-family: var(--font-mono); font-size: 0.6875rem; color: var(--accent-ink); text-transform: uppercase; letter-spacing: 0.06em; }
+
+.event-row {
+  display: grid;
+  gap: 8px;
+  padding-block: 14px;
+  border-top: 1px solid var(--rule);
+}
+.event-row:last-child { border-bottom: 1px solid var(--rule); }
+.ev-head { display: flex; gap: 8px; align-items: center; }
+.ev-head input { flex: 1 1 auto; font-family: var(--font-body); font-size: 0.9375rem; font-weight: 500; }
+.ev-line select { width: auto; flex: 0 1 auto; }
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  font-family: var(--font-mono);
+  font-size: 0.8125rem;
+  padding: 8px 12px;
+  border-radius: 4px;
+  border: 1px solid var(--ink);
+  background: transparent;
+  color: var(--ink);
+  cursor: pointer;
+  min-height: 36px;
+}
+.btn:hover { background: var(--accent-wash); }
+.btn.solid { background: var(--ink); color: var(--paper); }
+.btn.solid:hover { background: var(--ink-soft); }
+.btn.quiet { border-color: var(--rule-strong); color: var(--ink-soft); }
+.btn.icon { padding: 6px 10px; min-height: 32px; border-color: var(--rule-strong); color: var(--ink-soft); }
+.btn-row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.save-state { font-family: var(--font-mono); font-size: 0.75rem; color: var(--ink-faint); }
+
+/* ---------- Outputs ---------- */
+.outputs { display: grid; grid-template-columns: minmax(0, 1fr); gap: 48px; align-content: start; transition: opacity 160ms ease; }
+.outputs > *, .summary > *, .inputs > * { min-width: 0; }
+.outputs.stale { opacity: 0.45; }
+@media (prefers-reduced-motion: reduce) { .outputs { transition: none; } }
+
+.queue { list-style: none; padding: 0; display: grid; }
+.q-item {
+  display: grid;
+  grid-template-columns: 2rem minmax(0, 1fr);
+  gap: 6px 12px;
+  padding-block: 16px;
+  border-top: 1px solid var(--rule);
+}
+.q-item:last-child { border-bottom: 1px solid var(--rule); }
+.q-rank { font-family: var(--font-mono); font-size: 0.875rem; color: var(--ink-faint); padding-top: 2px; }
+.q-body { display: grid; gap: 6px; min-width: 0; }
+.q-top { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 2px 16px; }
+.q-name { font-weight: 600; font-size: 1.0625rem; }
+.q-val { font-weight: 600; font-size: 1.125rem; white-space: nowrap; }
+.q-val small { font-weight: 400; font-size: 0.75rem; color: var(--ink-faint); font-family: var(--font-mono); margin-left: 6px; }
+.q-bar { height: 8px; background: transparent; position: relative; }
+.q-bar::after {
+  content: ""; position: absolute; left: 0; right: 0; top: 50%; height: 1px; background: var(--rule);
+}
+.q-bar span {
+  position: relative; z-index: 1; display: block; height: 8px; border-radius: 0 4px 4px 0; background: var(--accent);
+  min-width: 2px;
+}
+.q-meta { font-size: 0.875rem; color: var(--ink-soft); display: grid; gap: 3px; }
+.q-meta .flip { color: var(--ink); }
+.q-next { font-size: 0.875rem; color: var(--ink); }
+.q-next b { font-family: var(--font-mono); font-weight: 500; font-size: 0.75rem; letter-spacing: 0.06em; text-transform: uppercase; color: var(--ink-faint); margin-right: 6px; }
+.q-item.noise .q-name, .q-item.noise .q-val { color: var(--ink-soft); }
+.q-item.noise .q-bar { display: none; }
+.chip {
+  display: inline-flex; align-items: center; gap: 6px;
+  font-family: var(--font-mono); font-size: 0.6875rem; letter-spacing: 0.06em; text-transform: uppercase;
+  color: var(--ink-soft);
+}
+.chip::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: var(--dot, var(--ink-faint)); }
+.chip[data-c="H"] { --dot: var(--good); }
+.chip[data-c="M"] { --dot: var(--accent); }
+.chip[data-c="L"] { --dot: var(--bad); }
+.chip[data-c="R"] { --dot: var(--ink-soft); }
+.q-source { font-style: italic; }
+
+.chart-card { display: grid; gap: 10px; }
+.legend { display: flex; flex-wrap: wrap; gap: 6px 18px; font-size: 0.8125rem; color: var(--ink-soft); }
+.legend span { display: inline-flex; align-items: center; gap: 7px; }
+.legend i { width: 12px; height: 12px; border-radius: 2px; display: inline-block; flex: 0 0 auto; }
+.legend .tri { width: 0; height: 0; border-radius: 0; border-left: 6px solid transparent; border-right: 6px solid transparent; border-bottom: 9px solid var(--ink); }
+.chart { position: relative; width: 100%; }
+.chart svg { display: block; width: 100%; height: auto; overflow: visible; }
+.chart svg:focus-visible { outline: 2px solid var(--accent); outline-offset: 4px; }
+.h-grid { stroke: var(--rule); stroke-width: 1; }
+.h-axis { stroke: var(--rule-strong); stroke-width: 1; }
+.h-tick { fill: var(--ink-faint); font-family: var(--font-mono); font-size: 11px; }
+.h-label { fill: var(--ink-soft); font-family: var(--font-mono); font-size: 11px; }
+.h-mark { stroke: var(--ink-soft); stroke-width: 1; }
+.h-bar.loss { fill: var(--bad); }
+.h-bar.mid { fill: var(--zone-mid); }
+.h-bar.win { fill: var(--good); }
+.h-bar.active { opacity: 0.72; }
+.h-tri { fill: var(--ink); stroke: var(--paper); stroke-width: 1.5; }
+.h-hit { fill: transparent; cursor: crosshair; }
+.tooltip {
+  position: absolute;
+  pointer-events: none;
+  background: var(--tooltip-bg);
+  color: var(--tooltip-fg);
+  border-radius: 4px;
+  padding: 7px 10px;
+  font-size: 0.8125rem;
+  line-height: 1.35;
+  white-space: nowrap;
+  transform: translate(-50%, calc(-100% - 10px));
+  z-index: 5;
+}
+.tooltip strong { display: block; font-size: 0.9375rem; }
+
+details.more { font-size: 0.875rem; }
+details.more summary { cursor: pointer; font-family: var(--font-mono); font-size: 0.8125rem; color: var(--accent-ink); width: max-content; max-width: 100%; }
+details.more[open] summary { margin-bottom: 10px; }
+
+.table-wrap { overflow-x: auto; }
+table { border-collapse: collapse; width: 100%; font-size: 0.875rem; }
+th, td { text-align: left; padding: 8px 10px 8px 0; border-bottom: 1px solid var(--rule); vertical-align: top; }
+th {
+  font-family: var(--font-mono); font-weight: 500; font-size: 0.6875rem; letter-spacing: 0.06em;
+  text-transform: uppercase; color: var(--ink-faint);
+}
+td.n, th.n { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; padding-left: 10px; }
+td.n.good { color: var(--good); }
+td.n.bad { color: var(--bad); }
+td .sub { display: block; color: var(--ink-faint); font-size: 0.75rem; }
+
+.prose { display: grid; gap: 10px; max-width: 72ch; }
+.prose p { color: var(--ink); }
+.prose .quiet { color: var(--ink-soft); }
+
+.bridge { display: grid; gap: 6px; }
+.b-row {
+  display: grid;
+  grid-template-columns: minmax(0, 12rem) minmax(0, 1fr) minmax(0, 6.5rem);
+  gap: 12px;
+  align-items: center;
+  font-size: 0.875rem;
+}
+.b-label { color: var(--ink-soft); }
+.b-row.total .b-label { color: var(--ink); font-weight: 600; }
+.b-track { position: relative; height: 18px; }
+.b-track::before { content: ""; position: absolute; top: 0; bottom: 0; left: var(--zero, 0%); width: 1px; background: var(--rule-strong); }
+.b-bar { position: absolute; top: 2px; height: 14px; border-radius: 3px; min-width: 2px; }
+.b-bar.up { background: var(--good); }
+.b-bar.down { background: var(--bad); }
+.b-bar.total { background: var(--ink-soft); }
+.b-val { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+@media (max-width: 560px) {
+  .b-row { grid-template-columns: minmax(0, 1fr) auto; row-gap: 4px; }
+  .b-track { grid-column: 1 / -1; grid-row: 2; }
+}
+
+.export-grid { display: grid; gap: 14px; }
+.status { font-family: var(--font-mono); font-size: 0.75rem; color: var(--ink-faint); min-height: 1.2em; }
+.method { display: grid; gap: 12px; max-width: 72ch; font-size: 0.9375rem; color: var(--ink-soft); }
+.method h3 { font-size: 1rem; color: var(--ink); }
+.method ul { padding-left: 1.1em; display: grid; gap: 6px; }
+
+.foot { border-top: 1px solid var(--rule); }
+.foot .wrap { padding-block: 18px 28px; font-family: var(--font-mono); font-size: 0.75rem; color: var(--ink-faint); }
+</style>
+</head>
+<body>
+
+<header class="masthead">
+  <div class="wrap">
+    <div>
+      <p class="eyebrow">Due-diligence planner · value of information</p>
+      <h1>Diligence Compass</h1>
+    </div>
+    <p class="lede">Tag every deal assumption with how sure you are of it. The compass simulates the deal thousands of times and ranks the unknowns by what it is worth, in money, to resolve each one before you sign.</p>
+  </div>
+</header>
+
+<main class="wrap layout">
+
+  <!-- ====================== Verdict ====================== -->
+  <section class="summary" id="summary" aria-labelledby="deal-name">
+    <div class="summary-top">
+      <div>
+        <h2 class="deal-name" id="deal-name">Deal</h2>
+        <p class="deal-note" id="deal-note" hidden></p>
+      </div>
+      <span class="pill" id="decision" data-state="close">Working…</span>
+    </div>
+    <div class="summary-main">
+      <div class="hero" id="hero">
+        <p class="eyebrow" id="hero-eyebrow">Resolve next</p>
+        <p class="hero-name" id="hero-name">…</p>
+        <p class="hero-fig" id="hero-fig">…</p>
+        <p class="hero-sub" id="hero-sub"></p>
+      </div>
+      <div class="tiles" id="tiles"></div>
+    </div>
+    <div class="verdict-text" id="verdict-text" aria-live="polite"></div>
+    <ul class="errors" id="errors" hidden></ul>
+    <p class="jump"><a href="#queue-h">Go to the full diligence queue</a> · <a href="#inputs-h">Edit the assumptions</a></p>
+  </section>
+
+  <!-- ====================== Inputs ====================== -->
+  <form class="inputs" id="inputs" novalidate>
+
+    <fieldset>
+      <legend><span class="eyebrow">What you know</span><span class="section-title" id="inputs-h">Deal terms</span></legend>
+      <div class="field">
+        <label for="deal-name-input">Deal name</label>
+        <input type="text" id="deal-name-input" autocomplete="off">
+      </div>
+      <div class="field">
+        <label for="deal-currency">Currency</label>
+        <select id="deal-currency"></select>
+      </div>
+      <div id="deal-fields" style="display:grid; gap:12px"></div>
+      <div class="cheque"><span>Equity cheque</span><strong id="cheque">—</strong></div>
+    </fieldset>
+
+    <fieldset>
+      <legend><span class="eyebrow">What you haven't verified</span><span class="section-title">Assumptions</span></legend>
+      <p class="fs-note">Set your base case, then how sure you are. The confidence sets a P10–P90 range; type your own range if you have one. Note where each number comes from and what it would cost to check.</p>
+      <div class="ledger" id="drivers"></div>
+    </fieldset>
+
+    <fieldset>
+      <legend><span class="eyebrow">What may or may not happen</span><span class="section-title">Risks</span></legend>
+      <p class="fs-note">Yes-or-no events found in diligence so far: a contract renewal, a rule change, a legal claim. Give each a chance and a hit.</p>
+      <div id="events"></div>
+      <div class="btn-row"><button type="button" class="btn quiet" id="add-event">Add a risk</button></div>
+    </fieldset>
+
+    <fieldset>
+      <legend><span class="eyebrow">Engine</span><span class="section-title">Simulation</span></legend>
+      <div class="field">
+        <label for="sim-samples">Simulated outcomes</label>
+        <select id="sim-samples">
+          <option value="2000">2,000</option>
+          <option value="5000">5,000</option>
+          <option value="10000">10,000</option>
+          <option value="20000">20,000</option>
+        </select>
+      </div>
+      <div class="field">
+        <label for="sim-rho">Growth and exit multiple move together (correlation)</label>
+        <input type="number" id="sim-rho" step="0.1" min="-0.9" max="0.9" inputmode="decimal">
+      </div>
+      <div class="field">
+        <label for="sim-seed">Random seed</label>
+        <input type="number" id="sim-seed" step="1" min="1" inputmode="numeric">
+      </div>
+    </fieldset>
+
+    <div class="btn-row">
+      <button type="button" class="btn quiet" id="reset-sample">Load the sample deal</button>
+      <span class="save-state" id="save-state"></span>
+    </div>
+  </form>
+
+  <!-- ====================== Outputs ====================== -->
+  <div class="outputs" id="outputs">
+
+    <section aria-labelledby="queue-h">
+      <div class="section-head">
+        <p class="eyebrow">Ranked by value of knowing</p>
+        <h2 class="section-title" id="queue-h">Diligence queue</h2>
+        <p class="note">Each figure is the most it is worth to learn that one unknown before signing: how much better, on average, your invest-or-pass call gets at your hurdle rate. Spend on the top of the list first; anything near zero can't change the call.</p>
+      </div>
+      <ol class="queue" id="queue"></ol>
+    </section>
+
+    <section aria-labelledby="dist-h" class="chart-card">
+      <div class="section-head">
+        <p class="eyebrow">Multiple of money, all simulated outcomes</p>
+        <h2 class="section-title" id="dist-h">Range of outcomes</h2>
+      </div>
+      <div class="legend" id="hist-legend"></div>
+      <div class="chart" id="hist"></div>
+      <details class="more">
+        <summary>Show as a table</summary>
+        <div class="table-wrap"><table id="pct-table"></table></div>
+      </details>
+    </section>
+
+    <section aria-labelledby="pm-h">
+      <div class="section-head">
+        <p class="eyebrow">The case against</p>
+        <h2 class="section-title" id="pm-h">Pre-mortem</h2>
+        <p class="note">What the worst tenth of simulated outcomes have in common. Use it as the dissent section of the memo.</p>
+      </div>
+      <div class="prose" id="pm-text"></div>
+      <div class="table-wrap" style="margin-top:14px"><table id="pm-table"></table></div>
+    </section>
+
+    <section aria-labelledby="wyhtb-h">
+      <div class="section-head">
+        <p class="eyebrow">One assumption at a time, the rest at base</p>
+        <h2 class="section-title" id="wyhtb-h">What you have to believe</h2>
+        <p class="note" id="wyhtb-note"></p>
+      </div>
+      <div class="table-wrap"><table id="wyhtb-table"></table></div>
+    </section>
+
+    <section aria-labelledby="bridge-h">
+      <div class="section-head">
+        <p class="eyebrow">Deal case, no risks triggered</p>
+        <h2 class="section-title" id="bridge-h">Where the return comes from</h2>
+      </div>
+      <div class="bridge" id="bridge"></div>
+    </section>
+
+    <section aria-labelledby="export-h">
+      <div class="section-head">
+        <p class="eyebrow">Take it to the investment committee</p>
+        <h2 class="section-title" id="export-h">Export and import</h2>
+        <p class="note">Copy a Markdown diligence plan for the memo, or copy the deal file to share the full set of assumptions with your team. Paste a deal file below to load it.</p>
+      </div>
+      <div class="export-grid">
+        <div class="btn-row">
+          <button type="button" class="btn solid" id="copy-memo">Copy diligence plan (Markdown)</button>
+          <button type="button" class="btn" id="copy-json">Copy deal file (JSON)</button>
+        </div>
+        <p class="status" id="export-status" role="status"></p>
+        <label class="sr-only" for="export-text">Exported text</label>
+        <textarea id="export-text" rows="8" readonly hidden></textarea>
+        <label for="import-text" class="eyebrow">Load a deal file</label>
+        <textarea id="import-text" rows="4" placeholder='Paste a deal file here, starting with {"version":1, …'></textarea>
+        <div class="btn-row">
+          <button type="button" class="btn" id="import-btn">Load pasted deal</button>
+          <label class="btn quiet" for="import-file">Open a .json file</label>
+          <input type="file" id="import-file" accept=".json,application/json" class="sr-only">
+        </div>
+        <p class="status" id="import-status" role="status"></p>
+      </div>
+    </section>
+
+    <section aria-labelledby="method-h">
+      <div class="section-head">
+        <p class="eyebrow">Method</p>
+        <h2 class="section-title" id="method-h">How the compass works</h2>
+      </div>
+      <div class="method">
+        <p>Most deal models answer "what is the return?" The compass answers a different question: <strong>which unknown should the team spend its next week on?</strong></p>
+        <ul>
+          <li><strong>Confidence becomes a range.</strong> Each assumption's tag sets its P10–P90 band. High, medium and low are ±2, ±5 and ±10 points on growth, and ±0.75x, ±1.5x and ±3x on the exit multiple. A typed range overrides the tag and can be lopsided.</li>
+          <li><strong>The deal is simulated.</strong> Revenue, margin, cash conversion and debt paydown run year by year to an exit. Risks fire at their stated chance. Growth and the exit multiple can move together, because the same market drives both.</li>
+          <li><strong>Every outcome is valued at your hurdle.</strong> Equity at exit, discounted at the hurdle rate, less the cheque. A positive average means the deal clears the hurdle at this price.</li>
+          <li><strong>Value of information.</strong> For each unknown, the compass estimates how much the invest-or-pass call would improve, on average, if that unknown were known before signing. This is the expected value of partial perfect information, used to rank research in drug funding and oil exploration. It is estimated by regressing deal value on each unknown, following Strong, Oakley &amp; Brennan (2014, <em>Medical Decision Making</em>).</li>
+          <li><strong>A ceiling, not a forecast.</strong> Real diligence gives a partial answer, so treat each figure as the most a check could be worth, and compare it with the check's cost. Values inside simulation noise, or below 0.1% of the equity cheque, show as ≈ 0.</li>
+        </ul>
+        <h3>What the model leaves out</h3>
+        <ul>
+          <li>No dividends, recaps or add-on acquisitions during the hold; one exit at the end.</li>
+          <li>Debt is sized in turns of headline EBITDA and repaid from free cash flow; the interest tax shield is ignored.</li>
+          <li>Risks hit at exit, with revenue effects phased in over the hold. One-off cash costs add to net debt at exit.</li>
+          <li>Equity can't go below zero, which is why the outcome range has a long right tail and a hard floor.</li>
+        </ul>
+      </div>
+    </section>
+  </div>
+</main>
+
+<footer class="foot">
+  <div class="wrap">Diligence Compass runs entirely in your browser. Nothing you type is sent anywhere. Model outputs depend on your own ranges; they are not forecasts or investment advice.</div>
+</footer>
+
+<script src="engine.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
